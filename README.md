@@ -168,6 +168,11 @@ Possible options (can be combined):
                    particular process. Increases the distributed graph 
                    creation time due to serial overheads, but may improve 
                    overall execution time.
+9. -o            : Output communities into a file. This option will result 
+                   in Vite dumping the communities (community-per-vertex in 
+                   each line, total number of lines == number of vertices) 
+                   in a text file named <input-binary-file>.communities in 
+                   the same path as the input binary file.
                   
 Note: Option to update inactive vertices percentage is defined as
 macro ET_CUTOFF in louvain.hpp, and the default is 2%.
