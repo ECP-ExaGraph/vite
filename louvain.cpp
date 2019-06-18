@@ -2021,7 +2021,7 @@ GraphElem distGetMaxIndex(const ClusterLocalMap &clmap, const GraphWeightVector 
 			  const CommMap &remoteCinfo,
 			  const GraphWeight vDegree, 
                           const GraphElem currSize,
-                          const GraphElem currDegree, 
+                          const GraphWeight currDegree, 
 			  const GraphElem currComm,
 			  const GraphElem base,
 			  const GraphElem bound,
@@ -2029,11 +2029,11 @@ GraphElem distGetMaxIndex(const ClusterLocalMap &clmap, const GraphWeightVector 
 {
   ClusterLocalMap::const_iterator storedAlready;
   GraphElem maxIndex = currComm;
-  double curGain = 0.0, maxGain = 0.0;
-  double eix = static_cast<double>(counter[0]) - static_cast<double>(selfLoop);
+  GraphWeight curGain = 0.0, maxGain = 0.0;
+  GraphWeight eix = static_cast<GraphWeight>(counter[0]) - static_cast<GraphWeight>(selfLoop);
 
-  double ax = currDegree - vDegree;
-  double eiy = 0.0, ay = 0.0;
+  GraphWeight ax = currDegree - vDegree;
+  GraphWeight eiy = 0.0, ay = 0.0;
 
   GraphElem maxSize = currSize; 
   GraphElem size = 0;
