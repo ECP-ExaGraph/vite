@@ -2091,7 +2091,8 @@ void distExecuteLouvainIteration(const GraphElem i, const DistGraph &dg,
 				 const int me)
 {
   GraphElem localTarget = -1;
-  GraphElem e0, e1, selfLoop = 0;
+  GraphElem e0, e1; 
+  GraphWeight selfLoop = 0.0;
   ClusterLocalMap clmap;
   GraphWeightVector counter;
 
