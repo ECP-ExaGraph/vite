@@ -68,7 +68,7 @@
 typedef struct edgeInfo{
   GraphElem s;
   GraphElem t;
-  GraphElem w;
+  GraphWeight w;
 }EdgeInfo;
 
 static MPI_Datatype edgeType;

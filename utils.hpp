@@ -60,7 +60,7 @@
 #define RANDOM_MAX_WEIGHT (1.0)
 #endif
 #ifndef RANDOM_MIN_WEIGHT
-#define RANDOM_MIN_WEIGHT (0.0)
+#define RANDOM_MIN_WEIGHT (0.01)
 #endif
 
 #ifndef TERMINATION_PHASE_COUNT

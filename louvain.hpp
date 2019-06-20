@@ -77,93 +77,93 @@ typedef std::vector<CommInfo> CommInfoVector;
 extern std::ofstream ofs;
 static MPI_Datatype commType;
 
-double distLouvainMethod(const int me, const int nprocs, const DistGraph &dg,
+GraphWeight distLouvainMethod(const int me, const int nprocs, const DistGraph &dg,
         size_t &ssz, size_t &rsz, std::vector<GraphElem> &ssizes, 
         std::vector<GraphElem> &rsizes, std::vector<GraphElem> &svdata, 
-        std::vector<GraphElem> &rvdata, CommunityVector &cvect, const double lower,
-        const double thresh, int& iters);
+        std::vector<GraphElem> &rvdata, CommunityVector &cvect, const GraphWeight lower,
+        const GraphWeight thresh, int& iters);
 
-double distLouvainMethod(const int me, const int nprocs, const DistGraph &dg,
+GraphWeight distLouvainMethod(const int me, const int nprocs, const DistGraph &dg,
         size_t &ssz, size_t &rsz, std::vector<GraphElem> &ssizes, 
         std::vector<GraphElem> &rsizes, std::vector<GraphElem> &svdata, 
-        std::vector<GraphElem> &rvdata, CommunityVector &cvect, const double lower,
-        const double thresh, int& iters, bool ETLocalOrRemote);
+        std::vector<GraphElem> &rvdata, CommunityVector &cvect, const GraphWeight lower,
+        const GraphWeight thresh, int& iters, bool ETLocalOrRemote);
 
-double distLouvainMethod(const int me, const int nprocs, const DistGraph &dg,
+GraphWeight distLouvainMethod(const int me, const int nprocs, const DistGraph &dg,
         size_t &ssz, size_t &rsz, std::vector<GraphElem> &ssizes, 
         std::vector<GraphElem> &rsizes, std::vector<GraphElem> &svdata, 
-        std::vector<GraphElem> &rvdata, CommunityVector &cvect, const double lower,
-        const double thresh, int& iters, double ETDelta, bool ETLocalOrRemote);
+        std::vector<GraphElem> &rvdata, CommunityVector &cvect, const GraphWeight lower,
+        const GraphWeight thresh, int& iters, GraphWeight ETDelta, bool ETLocalOrRemote);
 
-double distLouvainMethodWithColoring(const int me, const int nprocs, const DistGraph &dg,
+GraphWeight distLouvainMethodWithColoring(const int me, const int nprocs, const DistGraph &dg,
         const long numColor, const ColorVector &vertexColor, size_t &ssz, size_t &rsz, 
         std::vector<GraphElem> &ssizes, std::vector<GraphElem> &rsizes, 
         std::vector<GraphElem> &svdata, std::vector<GraphElem> &rvdata,
-        CommunityVector &cvect, const double lower, const double thresh, int& iters);
+        CommunityVector &cvect, const GraphWeight lower, const GraphWeight thresh, int& iters);
 
-double distLouvainMethodWithColoring(const int me, const int nprocs, const DistGraph &dg,
+GraphWeight distLouvainMethodWithColoring(const int me, const int nprocs, const DistGraph &dg,
         const long numColor, const ColorVector &vertexColor, size_t &ssz, size_t &rsz, 
         std::vector<GraphElem> &ssizes, std::vector<GraphElem> &rsizes, 
         std::vector<GraphElem> &svdata, std::vector<GraphElem> &rvdata,
-        CommunityVector &cvect, const double lower, const double thresh, 
+        CommunityVector &cvect, const GraphWeight lower, const GraphWeight thresh, 
         int& iters, bool ETLocalOrRemote);
 
-double distLouvainMethodWithColoring(const int me, const int nprocs, const DistGraph &dg,
+GraphWeight distLouvainMethodWithColoring(const int me, const int nprocs, const DistGraph &dg,
         const long numColor, const ColorVector &vertexColor, 
         size_t &ssz, size_t &rsz, std::vector<GraphElem> &ssizes, 
         std::vector<GraphElem> &rsizes, std::vector<GraphElem> &svdata, 
         std::vector<GraphElem> &rvdata, CommunityVector &cvect, 
-        const double lower, const double thresh, int& iters, double ETDelta, 
+        const GraphWeight lower, const GraphWeight thresh, int& iters, GraphWeight ETDelta, 
         bool ETLocalOrRemote);
 
-double distLouvainMethodVertexOrder(const int me, const int nprocs, const DistGraph &dg,
+GraphWeight distLouvainMethodVertexOrder(const int me, const int nprocs, const DistGraph &dg,
         const long numColor, const ColorVector &vertexColor, size_t &ssz, size_t &rsz, 
         std::vector<GraphElem> &ssizes, std::vector<GraphElem> &rsizes, 
         std::vector<GraphElem> &svdata, std::vector<GraphElem> &rvdata,                        
-        CommunityVector &cvect, const double lower, const double thresh, int& iters);
+        CommunityVector &cvect, const GraphWeight lower, const GraphWeight thresh, int& iters);
 
-double distLouvainMethodVertexOrder(const int me, const int nprocs, const DistGraph &dg,
+GraphWeight distLouvainMethodVertexOrder(const int me, const int nprocs, const DistGraph &dg,
         const long numColor, const ColorVector &vertexColor, size_t &ssz, size_t &rsz, 
         std::vector<GraphElem> &ssizes, std::vector<GraphElem> &rsizes, 
         std::vector<GraphElem> &svdata, std::vector<GraphElem> &rvdata,                        
-        CommunityVector &cvect, const double lower, const double thresh, int& iters, 
+        CommunityVector &cvect, const GraphWeight lower, const GraphWeight thresh, int& iters, 
         bool ETLocalOrRemote);
 
-double distLouvainMethodVertexOrder(const int me, const int nprocs, const DistGraph &dg,
+GraphWeight distLouvainMethodVertexOrder(const int me, const int nprocs, const DistGraph &dg,
         const long numColor, const ColorVector &vertexColor, size_t &ssz, size_t &rsz, 
         std::vector<GraphElem> &ssizes, std::vector<GraphElem> &rsizes, 
         std::vector<GraphElem> &svdata, std::vector<GraphElem> &rvdata,                        
-        CommunityVector &cvect, const double lower, const double thresh, int& iters, 
-        double ETDelta, bool ETLocalOrRemote);
+        CommunityVector &cvect, const GraphWeight lower, const GraphWeight thresh, int& iters, 
+        GraphWeight ETDelta, bool ETLocalOrRemote);
 
 static void distInitLouvain(const DistGraph &dg, CommunityVector &pastComm, 
         CommunityVector &currComm, GraphWeightVector &vDegree, 
         GraphWeightVector &clusterWeight, CommVector &localCinfo, 
-        CommVector &localCupdate, double &constantForSecondTerm, 
+        CommVector &localCupdate, GraphWeight &constantForSecondTerm, 
         const int me);
 
 static void distExecuteLouvainIteration(const GraphElem i, const DistGraph &dg,
         const CommunityVector &currComm, CommunityVector &targetComm,
         const GraphWeightVector &vDegree, CommVector &localCinfo, CommVector &localCupdate, 
         const VertexCommMap &remoteComm, const CommMap &remoteCinfo, CommMap &remoteCupdate,
-        const double constantForSecondTerm, GraphWeightVector &clusterWeight, const int me);
+        const GraphWeight constantForSecondTerm, GraphWeightVector &clusterWeight, const int me);
 
 static void distSumVertexDegree(const Graph &g, GraphWeightVector &vDegree, CommVector &localCinfo);
 
-static double distCalcConstantForSecondTerm(const GraphWeightVector &vDegree);
+static GraphWeight distCalcConstantForSecondTerm(const GraphWeightVector &vDegree);
 
 static GraphElem distGetMaxIndex(const ClusterLocalMap &clmap, const GraphWeightVector &counter,
         const GraphWeight selfLoop, const CommVector &localCinfo, const CommMap &remoteCinfo,
         const GraphWeight vDegree, const GraphElem currSize, const GraphElem currDegree, 
-        const GraphElem currComm, const GraphElem base, const GraphElem bound, const double constant);
+        const GraphElem currComm, const GraphElem base, const GraphElem bound, const GraphWeight constant);
 
 static GraphWeight distBuildLocalMapCounter(const GraphElem e0, const GraphElem e1,
         ClusterLocalMap &clmap, GraphWeightVector &counter, const Graph &g, const CommunityVector &currComm,
         const VertexCommMap &remoteComm, const GraphElem vertex, const GraphElem base, const GraphElem bound);
 
-static double distComputeModularity(const Graph &g, CommVector &localCinfo,
+static GraphWeight distComputeModularity(const Graph &g, CommVector &localCinfo,
         const GraphWeightVector &clusterWeight, 
-        const double constantForSecondTerm, const int me);
+        const GraphWeight constantForSecondTerm, const int me);
 
 static void distUpdateLocalCinfo(CommVector &localCinfo, const CommVector &localCupdate);
 

@@ -4,11 +4,11 @@
 
 #include "locks.hpp"
 
-double distLouvainMethod(const int me, const int nprocs, const DistGraph &dg,
+GraphWeight distLouvainMethod(const int me, const int nprocs, const DistGraph &dg,
         size_t &ssz, size_t &rsz, 
         std::vector<GraphElem> &ssizes, std::vector<GraphElem> &rsizes, 
         std::vector<GraphElem> &svdata, std::vector<GraphElem> &rvdata,
-        CommunityVector &cvect, const double lower, const double thresh, 
+        CommunityVector &cvect, const GraphWeight lower, const GraphWeight thresh, 
         int& iters, bool ETLocalOrRemote)
 {
   CommunityVector pastComm, currComm, targetComm;
@@ -23,11 +23,11 @@ double distLouvainMethod(const int me, const int nprocs, const DistGraph &dg,
   const GraphElem tnv = dg.getTotalNumVertices();
   const GraphElem nv = g.getNumVertices();
   const GraphElem ne = g.getNumEdges();
-  const double threshMod = thresh;
+  const GraphWeight threshMod = thresh;
 
-  double constantForSecondTerm;
-  double prevMod = lower;
-  double currMod = -1.0;
+  GraphWeight constantForSecondTerm;
+  GraphWeight prevMod = lower;
+  GraphWeight currMod = -1.0;
   int numIters = 0;
 
   // initializations
@@ -113,7 +113,7 @@ double distLouvainMethod(const int me, const int nprocs, const DistGraph &dg,
     }
     if (!ETLocalOrRemote) {
         MPI_Allreduce(MPI_IN_PLACE, &vc_count, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
-        double perc = 100.0 * ((double)(tnv-vc_count)/(double)tnv);
+        GraphWeight perc = 100.0 * ((GraphWeight)(tnv-vc_count)/(GraphWeight)tnv);
         if (vc_count >= ET_CUTOFF) {
             currMod = -1;
             break;
@@ -203,12 +203,12 @@ double distLouvainMethod(const int me, const int nprocs, const DistGraph &dg,
   return prevMod;
 } // distLouvainMethod with early termination
 
-double distLouvainMethod(const int me, const int nprocs, 
+GraphWeight distLouvainMethod(const int me, const int nprocs, 
         const DistGraph &dg, size_t &ssz, size_t &rsz, 
         std::vector<GraphElem> &ssizes, std::vector<GraphElem> &rsizes, 
         std::vector<GraphElem> &svdata, std::vector<GraphElem> &rvdata,
-        CommunityVector &cvect, const double lower, const double thresh, 
-        int& iters, double ETDelta, bool ETLocalOrRemote)
+        CommunityVector &cvect, const GraphWeight lower, const GraphWeight thresh, 
+        int& iters, GraphWeight ETDelta, bool ETLocalOrRemote)
 {
   CommunityVector pastComm, currComm, targetComm;
   GraphWeightVector vDegree;
@@ -222,11 +222,11 @@ double distLouvainMethod(const int me, const int nprocs,
   const GraphElem tnv = dg.getTotalNumVertices();
   const GraphElem nv = g.getNumVertices();
   const GraphElem ne = g.getNumEdges();
-  const double threshMod = thresh;
+  const GraphWeight threshMod = thresh;
 
-  double constantForSecondTerm;
-  double prevMod = lower;
-  double currMod = -1.0;
+  GraphWeight constantForSecondTerm;
+  GraphWeight prevMod = lower;
+  GraphWeight currMod = -1.0;
   int numIters = 0;
 
   // initializations
@@ -240,7 +240,7 @@ double distLouvainMethod(const int me, const int nprocs,
   vActive.resize(nv);
   
   // vertex probabilities for current and previous iteration
-  std::vector<double> p_curr, p_prev;
+  std::vector<GraphWeight> p_curr, p_prev;
   p_curr.resize(nv); 
   p_prev.resize(nv);
 
@@ -318,7 +318,7 @@ double distLouvainMethod(const int me, const int nprocs,
     }
     if (!ETLocalOrRemote) {
         MPI_Allreduce(MPI_IN_PLACE, &vc_count, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
-        double perc = 100.0 * ((double)(tnv-vc_count)/(double)tnv);
+        GraphWeight perc = 100.0 * ((GraphWeight)(tnv-vc_count)/(GraphWeight)tnv);
         if (vc_count >= ET_CUTOFF) {
             currMod = -1;
             break;
@@ -365,7 +365,7 @@ double distLouvainMethod(const int me, const int nprocs,
     if (prevMod < lower)
         prevMod = lower;
 
-    const double one_minus_delta = (1.0 - ETDelta);
+    const GraphWeight one_minus_delta = (1.0 - ETDelta);
 #ifdef OMP_SCHEDULE_RUNTIME
 #pragma omp parallel for default(none), \
     shared(pastComm, currComm, targetComm, vActive, p_curr, p_prev) \
@@ -422,11 +422,11 @@ double distLouvainMethod(const int me, const int nprocs,
   return prevMod;
 } // distLouvainMethod with early termination probabilities
 
-double distLouvainMethod(const int me, const int nprocs, const DistGraph &dg,
+GraphWeight distLouvainMethod(const int me, const int nprocs, const DistGraph &dg,
         size_t &ssz, size_t &rsz, 
         std::vector<GraphElem> &ssizes, std::vector<GraphElem> &rsizes, 
         std::vector<GraphElem> &svdata, std::vector<GraphElem> &rvdata,
-        CommunityVector &cvect, const double lower, const double thresh, 
+        CommunityVector &cvect, const GraphWeight lower, const GraphWeight thresh, 
         int& iters)
 {
   CommunityVector pastComm, currComm, targetComm;
@@ -441,11 +441,11 @@ double distLouvainMethod(const int me, const int nprocs, const DistGraph &dg,
   const GraphElem tnv = dg.getTotalNumVertices();
   const GraphElem nv = g.getNumVertices();
   const GraphElem ne = g.getNumEdges();
-  const double threshMod = thresh;
+  const GraphWeight threshMod = thresh;
 
-  double constantForSecondTerm;
-  double prevMod = lower;
-  double currMod = -1.0;
+  GraphWeight constantForSecondTerm;
+  GraphWeight prevMod = lower;
+  GraphWeight currMod = -1.0;
   int numIters = 0;
  
   distInitLouvain(dg, pastComm, currComm, vDegree, clusterWeight, localCinfo, 
@@ -587,11 +587,11 @@ double distLouvainMethod(const int me, const int nprocs, const DistGraph &dg,
   return prevMod;
 } // distLouvainMethod plain
 
-double distLouvainMethodWithColoring(const int me, const int nprocs, const DistGraph &dg,
+GraphWeight distLouvainMethodWithColoring(const int me, const int nprocs, const DistGraph &dg,
         const long numColor, const ColorVector &vertexColor, size_t &ssz, size_t &rsz, 
         std::vector<GraphElem> &ssizes, std::vector<GraphElem> &rsizes, 
         std::vector<GraphElem> &svdata, std::vector<GraphElem> &rvdata,
-        CommunityVector &cvect, const double lower, const double thresh, 
+        CommunityVector &cvect, const GraphWeight lower, const GraphWeight thresh, 
         int& iters)
 {
   // if no colors, then fall back to original distLouvain  
@@ -613,11 +613,11 @@ double distLouvainMethodWithColoring(const int me, const int nprocs, const DistG
   const GraphElem tnv = dg.getTotalNumVertices();
   const GraphElem nv = g.getNumVertices();
   const GraphElem ne = g.getNumEdges();
-  const double threshMod = thresh;
+  const GraphWeight threshMod = thresh;
 
-  double constantForSecondTerm;
-  double prevMod = lower;
-  double currMod = -1.0;
+  GraphWeight constantForSecondTerm;
+  GraphWeight prevMod = lower;
+  GraphWeight currMod = -1.0;
   int numIters = 0;
 
   distInitLouvain(dg, pastComm, currComm, vDegree, clusterWeight, localCinfo, 
@@ -782,11 +782,11 @@ double distLouvainMethodWithColoring(const int me, const int nprocs, const DistG
   return prevMod;
 } // distLouvainMethodWithColoring plain
 
-double distLouvainMethodWithColoring(const int me, const int nprocs, const DistGraph &dg,
+GraphWeight distLouvainMethodWithColoring(const int me, const int nprocs, const DistGraph &dg,
         const long numColor, const ColorVector &vertexColor, size_t &ssz, size_t &rsz, 
         std::vector<GraphElem> &ssizes, std::vector<GraphElem> &rsizes, 
         std::vector<GraphElem> &svdata, std::vector<GraphElem> &rvdata,
-        CommunityVector &cvect, const double lower, const double thresh, 
+        CommunityVector &cvect, const GraphWeight lower, const GraphWeight thresh, 
         int& iters, bool ETLocalOrRemote)
 {
   // if no colors, then fall back to original distLouvain  
@@ -808,11 +808,11 @@ double distLouvainMethodWithColoring(const int me, const int nprocs, const DistG
   const GraphElem tnv = dg.getTotalNumVertices();
   const GraphElem nv = g.getNumVertices();
   const GraphElem ne = g.getNumEdges();
-  const double threshMod = thresh;
+  const GraphWeight threshMod = thresh;
 
-  double constantForSecondTerm;
-  double prevMod = lower;
-  double currMod = -1.0;
+  GraphWeight constantForSecondTerm;
+  GraphWeight prevMod = lower;
+  GraphWeight currMod = -1.0;
   int numIters = 0;
 
   distInitLouvain(dg, pastComm, currComm, vDegree, clusterWeight, localCinfo, 
@@ -953,7 +953,7 @@ double distLouvainMethodWithColoring(const int me, const int nprocs, const DistG
 
       if (!ETLocalOrRemote) {
           MPI_Allreduce(MPI_IN_PLACE, &vc_count, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
-          double perc = 100.0 * ((double)(tnv-vc_count)/(double)tnv);
+          GraphWeight perc = 100.0 * ((GraphWeight)(tnv-vc_count)/(GraphWeight)tnv);
           if (vc_count >= ET_CUTOFF) {
               currMod = -1;
               break;
@@ -1011,12 +1011,12 @@ double distLouvainMethodWithColoring(const int me, const int nprocs, const DistG
   return prevMod;
 } // distLouvainMethodWithColoring with early termination
 
-double distLouvainMethodWithColoring(const int me, const int nprocs, const DistGraph &dg,
+GraphWeight distLouvainMethodWithColoring(const int me, const int nprocs, const DistGraph &dg,
         const long numColor, const ColorVector &vertexColor, size_t &ssz, size_t &rsz, 
         std::vector<GraphElem> &ssizes, std::vector<GraphElem> &rsizes, 
         std::vector<GraphElem> &svdata, std::vector<GraphElem> &rvdata,
-        CommunityVector &cvect, const double lower, const double thresh, 
-        int& iters, double ETDelta, bool ETLocalOrRemote)
+        CommunityVector &cvect, const GraphWeight lower, const GraphWeight thresh, 
+        int& iters, GraphWeight ETDelta, bool ETLocalOrRemote)
 {
   // if no colors, then fall back to original distLouvain  
   if (numColor == 1) {
@@ -1037,11 +1037,11 @@ double distLouvainMethodWithColoring(const int me, const int nprocs, const DistG
   const GraphElem tnv = dg.getTotalNumVertices();
   const GraphElem nv = g.getNumVertices();
   const GraphElem ne = g.getNumEdges();
-  const double threshMod = thresh;
+  const GraphWeight threshMod = thresh;
 
-  double constantForSecondTerm;
-  double prevMod = lower;
-  double currMod = -1.0;
+  GraphWeight constantForSecondTerm;
+  GraphWeight prevMod = lower;
+  GraphWeight currMod = -1.0;
   int numIters = 0;
 
   distInitLouvain(dg, pastComm, currComm, vDegree, clusterWeight, localCinfo, 
@@ -1054,7 +1054,7 @@ double distLouvainMethodWithColoring(const int me, const int nprocs, const DistG
   vActive.resize(nv);
   
   // vertex probabilities for current and previous iteration
-  std::vector<double> p_curr, p_prev;
+  std::vector<GraphWeight> p_curr, p_prev;
   p_curr.resize(nv); 
   p_prev.resize(nv); 
 
@@ -1189,7 +1189,7 @@ double distLouvainMethodWithColoring(const int me, const int nprocs, const DistG
 
       if (!ETLocalOrRemote) {
           MPI_Allreduce(MPI_IN_PLACE, &vc_count, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
-          double perc = 100.0 * ((double)(tnv-vc_count)/(double)tnv);
+          GraphWeight perc = 100.0 * ((GraphWeight)(tnv-vc_count)/(GraphWeight)tnv);
           if (vc_count >= ET_CUTOFF) {
               currMod = -1;
               break;
@@ -1208,7 +1208,7 @@ double distLouvainMethodWithColoring(const int me, const int nprocs, const DistG
       if (prevMod < lower)
           prevMod = lower;   
 
-      const double one_minus_delta = (1.0 - ETDelta);
+      const GraphWeight one_minus_delta = (1.0 - ETDelta);
 #ifdef OMP_SCHEDULE_RUNTIME
 #pragma omp parallel for default(none), \
     shared(pastComm, currComm, targetComm, vActive, p_curr, p_prev) \
@@ -1264,11 +1264,11 @@ double distLouvainMethodWithColoring(const int me, const int nprocs, const DistG
 // version is that communication is exactly same as in non-coloring version,
 // only the Louvain step is arranged such that adjacent locally owned vertices 
 // are not processed at a time 
-double distLouvainMethodVertexOrder(const int me, const int nprocs, const DistGraph &dg,
+GraphWeight distLouvainMethodVertexOrder(const int me, const int nprocs, const DistGraph &dg,
         const long numColor, const ColorVector &vertexColor, size_t &ssz, size_t &rsz, 
         std::vector<GraphElem> &ssizes, std::vector<GraphElem> &rsizes, 
         std::vector<GraphElem> &svdata, std::vector<GraphElem> &rvdata,
-        CommunityVector &cvect, const double lower, const double thresh, 
+        CommunityVector &cvect, const GraphWeight lower, const GraphWeight thresh, 
         int& iters)
 {
   // if no colors, then fall back to original distLouvain  
@@ -1290,11 +1290,11 @@ double distLouvainMethodVertexOrder(const int me, const int nprocs, const DistGr
   const GraphElem tnv = dg.getTotalNumVertices();
   const GraphElem nv = g.getNumVertices();
   const GraphElem ne = g.getNumEdges();
-  const double threshMod = thresh;
+  const GraphWeight threshMod = thresh;
 
-  double constantForSecondTerm;
-  double prevMod = lower;
-  double currMod = -1.0;
+  GraphWeight constantForSecondTerm;
+  GraphWeight prevMod = lower;
+  GraphWeight currMod = -1.0;
   int numIters = 0;
 
   distInitLouvain(dg, pastComm, currComm, vDegree, clusterWeight, localCinfo, 
@@ -1458,11 +1458,11 @@ double distLouvainMethodVertexOrder(const int me, const int nprocs, const DistGr
   return prevMod;
 } // distLouvainMethodVertexOrder plain
 
-double distLouvainMethodVertexOrder(const int me, const int nprocs, const DistGraph &dg,
+GraphWeight distLouvainMethodVertexOrder(const int me, const int nprocs, const DistGraph &dg,
         const long numColor, const ColorVector &vertexColor, size_t &ssz, size_t &rsz, 
         std::vector<GraphElem> &ssizes, std::vector<GraphElem> &rsizes, 
         std::vector<GraphElem> &svdata, std::vector<GraphElem> &rvdata,
-        CommunityVector &cvect, const double lower, const double thresh, 
+        CommunityVector &cvect, const GraphWeight lower, const GraphWeight thresh, 
         int& iters, bool ETLocalOrRemote)
 {
   // if no colors, then fall back to original distLouvain  
@@ -1484,11 +1484,11 @@ double distLouvainMethodVertexOrder(const int me, const int nprocs, const DistGr
   const GraphElem tnv = dg.getTotalNumVertices();
   const GraphElem nv = g.getNumVertices();
   const GraphElem ne = g.getNumEdges();
-  const double threshMod = thresh;
+  const GraphWeight threshMod = thresh;
 
-  double constantForSecondTerm;
-  double prevMod = lower;
-  double currMod = -1.0;
+  GraphWeight constantForSecondTerm;
+  GraphWeight prevMod = lower;
+  GraphWeight currMod = -1.0;
   int numIters = 0;
 
   distInitLouvain(dg, pastComm, currComm, vDegree, clusterWeight, localCinfo, 
@@ -1613,7 +1613,7 @@ double distLouvainMethodVertexOrder(const int me, const int nprocs, const DistGr
  
       if (!ETLocalOrRemote) {
           MPI_Allreduce(MPI_IN_PLACE, &vc_count, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
-          double perc = 100.0 * ((double)(tnv-vc_count)/(double)tnv);
+          GraphWeight perc = 100.0 * ((GraphWeight)(tnv-vc_count)/(GraphWeight)tnv);
           if (vc_count >= ET_CUTOFF) {
               currMod = -1;
               break;
@@ -1686,12 +1686,12 @@ double distLouvainMethodVertexOrder(const int me, const int nprocs, const DistGr
   return prevMod;
 } // distLouvainMethodVertexOrder with early termination
 
-double distLouvainMethodVertexOrder(const int me, const int nprocs, const DistGraph &dg,
+GraphWeight distLouvainMethodVertexOrder(const int me, const int nprocs, const DistGraph &dg,
         const long numColor, const ColorVector &vertexColor, size_t &ssz, size_t &rsz, 
         std::vector<GraphElem> &ssizes, std::vector<GraphElem> &rsizes, 
         std::vector<GraphElem> &svdata, std::vector<GraphElem> &rvdata,
-        CommunityVector &cvect, const double lower, const double thresh, 
-        int& iters, double ETDelta, bool ETLocalOrRemote)
+        CommunityVector &cvect, const GraphWeight lower, const GraphWeight thresh, 
+        int& iters, GraphWeight ETDelta, bool ETLocalOrRemote)
 {
   // if no colors, then fall back to original distLouvain  
   if (numColor == 1) {
@@ -1712,11 +1712,11 @@ double distLouvainMethodVertexOrder(const int me, const int nprocs, const DistGr
   const GraphElem tnv = dg.getTotalNumVertices();
   const GraphElem nv = g.getNumVertices();
   const GraphElem ne = g.getNumEdges();
-  const double threshMod = thresh;
+  const GraphWeight threshMod = thresh;
 
-  double constantForSecondTerm;
-  double prevMod = lower;
-  double currMod = -1.0;
+  GraphWeight constantForSecondTerm;
+  GraphWeight prevMod = lower;
+  GraphWeight currMod = -1.0;
   int numIters = 0;
 
   distInitLouvain(dg, pastComm, currComm, vDegree, clusterWeight, localCinfo, 
@@ -1729,7 +1729,7 @@ double distLouvainMethodVertexOrder(const int me, const int nprocs, const DistGr
   vActive.resize(nv);
    
   // vertex probabilities for current and previous iteration
-  std::vector<double> p_curr, p_prev;
+  std::vector<GraphWeight> p_curr, p_prev;
   p_curr.resize(nv); 
   p_prev.resize(nv); 
 
@@ -1848,7 +1848,7 @@ double distLouvainMethodVertexOrder(const int me, const int nprocs, const DistGr
  
       if (!ETLocalOrRemote) {
           MPI_Allreduce(MPI_IN_PLACE, &vc_count, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
-          double perc = 100.0 * ((double)(tnv-vc_count)/(double)tnv);
+          GraphWeight perc = 100.0 * ((GraphWeight)(tnv-vc_count)/(GraphWeight)tnv);
           if (vc_count >= ET_CUTOFF) {
               currMod = -1;
               break;
@@ -1883,7 +1883,7 @@ double distLouvainMethodVertexOrder(const int me, const int nprocs, const DistGr
       if (prevMod < lower)
           prevMod = lower;   
 
-      const double one_minus_delta = (1.0 - ETDelta);
+      const GraphWeight one_minus_delta = (1.0 - ETDelta);
 #ifdef OMP_SCHEDULE_RUNTIME
 #pragma omp parallel for default(none), \
     shared(pastComm, currComm, targetComm, vActive, p_curr, p_prev) \
@@ -1937,7 +1937,7 @@ double distLouvainMethodVertexOrder(const int me, const int nprocs, const DistGr
 void distInitLouvain(const DistGraph &dg, CommunityVector &pastComm, 
         CommunityVector &currComm, GraphWeightVector &vDegree, 
         GraphWeightVector &clusterWeight, CommVector &localCinfo, 
-        CommVector &localCupdate, double &constantForSecondTerm,
+        CommVector &localCupdate, GraphWeight &constantForSecondTerm,
         const int me)
 {
   const Graph &g = dg.getLocalGraph();
@@ -1984,7 +1984,7 @@ void distSumVertexDegree(const Graph &g, GraphWeightVector &vDegree, CommVector 
   }
 } // distSumVertexDegree
 
-double distCalcConstantForSecondTerm(const GraphWeightVector &vDegree)
+GraphWeight distCalcConstantForSecondTerm(const GraphWeightVector &vDegree)
 {
   GraphWeight totalEdgeWeightTwice = 0;
   GraphWeight localWeight = 0;
@@ -2013,7 +2013,7 @@ double distCalcConstantForSecondTerm(const GraphWeightVector &vDegree)
   ofs << "Global: " << totalEdgeWeightTwice << std::endl;
 #endif
   
-  return (1.0 / static_cast<double>(totalEdgeWeightTwice));
+  return (1.0 / static_cast<GraphWeight>(totalEdgeWeightTwice));
 } // distCalcConstantForSecondTerm
 
 GraphElem distGetMaxIndex(const ClusterLocalMap &clmap, const GraphWeightVector &counter,
@@ -2025,7 +2025,7 @@ GraphElem distGetMaxIndex(const ClusterLocalMap &clmap, const GraphWeightVector 
 			  const GraphElem currComm,
 			  const GraphElem base,
 			  const GraphElem bound,
-			  const double constant)
+			  const GraphWeight constant)
 {
   ClusterLocalMap::const_iterator storedAlready;
   GraphElem maxIndex = currComm;
@@ -2086,7 +2086,7 @@ void distExecuteLouvainIteration(const GraphElem i, const DistGraph &dg,
 				 const VertexCommMap &remoteComm,
                                  const CommMap &remoteCinfo,
                                  CommMap &remoteCupdate,
-                                 const double constantForSecondTerm,
+                                 const GraphWeight constantForSecondTerm,
                                  GraphWeightVector &clusterWeight, 
 				 const int me)
 {
@@ -2264,16 +2264,16 @@ GraphWeight distBuildLocalMapCounter(const GraphElem e0, const GraphElem e1,
   return selfLoop;
 } // distBuildLocalMapCounter
 
-double distComputeModularity(const Graph &g, CommVector &localCinfo,
+GraphWeight distComputeModularity(const Graph &g, CommVector &localCinfo,
 			     const GraphWeightVector &clusterWeight,
-			     const double constantForSecondTerm,
+			     const GraphWeight constantForSecondTerm,
 			     const int me)
 {
   const GraphElem nv = g.getNumVertices();
 
-  double le_la_xx[2];
-  double e_a_xx[2] = {0.0, 0.0};
-  double le_xx = 0.0, la2_x = 0.0;
+  GraphWeight le_la_xx[2];
+  GraphWeight e_a_xx[2] = {0.0, 0.0};
+  GraphWeight le_xx = 0.0, la2_x = 0.0;
 
 #ifdef DEBUG_PRINTF  
   assert((clusterWeight.size() == nv));
@@ -2288,7 +2288,7 @@ double distComputeModularity(const Graph &g, CommVector &localCinfo,
 #endif
   for (GraphElem i = 0L; i < nv; i++) {
     le_xx += clusterWeight[i];
-    la2_x += static_cast<double>(localCinfo[i].degree) * static_cast<double>(localCinfo[i].degree); 
+    la2_x += static_cast<GraphWeight>(localCinfo[i].degree) * static_cast<GraphWeight>(localCinfo[i].degree); 
   } 
   le_la_xx[0] = le_xx;
   le_la_xx[1] = la2_x;
@@ -2297,14 +2297,14 @@ double distComputeModularity(const Graph &g, CommVector &localCinfo,
   const double t0 = MPI_Wtime();
 #endif
 
-  MPI_Allreduce(le_la_xx, e_a_xx, 2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(le_la_xx, e_a_xx, 2, MPI_WEIGHT_TYPE, MPI_SUM, MPI_COMM_WORLD);
 
 #ifdef DEBUG_PRINTF  
   const double t1 = MPI_Wtime();
 #endif
 
-  double currMod = (e_a_xx[0] * constantForSecondTerm) - (e_a_xx[1] * constantForSecondTerm *
-						     constantForSecondTerm);
+  GraphWeight currMod = std::fabs((e_a_xx[0] * constantForSecondTerm) - (e_a_xx[1] * constantForSecondTerm *
+						     constantForSecondTerm));
 #ifdef DEBUG_PRINTF  
   ofs << "le_xx: " << le_xx << ", la2_x: " << la2_x << std::endl;
   ofs << "e_xx: " << e_a_xx[0] << ", a2_x: " << e_a_xx[1] << ", currMod: " << currMod << std::endl;

@@ -366,17 +366,17 @@ void send_newEdges(int me, int nprocs, DistGraph* &dg,
 #endif
 
     if(belongProc != me){ // Put not owned into send list
-      EdgeVector& sendTo = parray[belongProc];
-      NewEdge::iterator innerIt;
-      for(innerIt = it->second.begin();innerIt != it->second.end(); innerIt++){
-        EdgeInfo x;
-        x.s = it->first;
-        x.t = innerIt->first;
-        x.w = innerIt->second;
-        sendTo.push_back(x);
-      }
+        EdgeVector& sendTo = parray[belongProc];
+        NewEdge::iterator innerIt;
+        for(innerIt = it->second.begin();innerIt != it->second.end(); innerIt++){
+            EdgeInfo x;
+            x.s = it->first;
+            x.t = innerIt->first;
+            x.w = innerIt->second;
+            sendTo.push_back(x);
+        }
     }
-        else  // Put owned into localGraph
+    else  // Put owned into localGraph
         localGraph[it->first - parts[me]] = it->second;
   }
 
@@ -429,7 +429,7 @@ void send_newEdges(int me, int nprocs, DistGraph* &dg,
   /******  Reconstruction *******/
   GraphElem s;
   GraphElem t;
-  GraphElem w;
+  GraphWeight w;
   // Fill in the graph
   for(GraphElem i = 0; i < comingSize; i++){
     s = rNewEdges[i].s - parts[me];

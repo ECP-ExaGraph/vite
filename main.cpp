@@ -91,7 +91,7 @@ static bool   thresholdScaling          = false;
 // early termination related
 static bool   earlyTerm                 = false;
 static int    ETType                    = 0;
-static double ETDelta                   = 1.0;
+static GraphWeight ETDelta                   = 1.0;
 
 // community comparison with ground-truth
 static bool  compareCommunities         = false;
@@ -191,8 +191,8 @@ int main(int argc, char *argv[])
 #endif
 #endif
 
-  double currMod = -1.0;
-  double prevMod = -1.0;
+  GraphWeight currMod = -1.0;
+  GraphWeight prevMod = -1.0;
   double total=0;
   int phase = 0, short_phase = 0;
 
@@ -200,7 +200,7 @@ int main(int argc, char *argv[])
   ColorElem numColors;
   ColorVector colors;
   CommunityVector cvect;
-  double threshold;
+  GraphWeight threshold;
 
   std::vector<GraphElem> ssizes, rsizes, svdata, rvdata;
   size_t ssz = 0U, rsz = 0U;
@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
 
   // outermost loop
   while(1) {
-    double ptotal = 0;
+    GraphWeight ptotal = 0;
     
     // if threshold-scaling is ON, then
     // use larger threshold towards the
@@ -367,7 +367,7 @@ int main(int argc, char *argv[])
     // ONCE with 1E-6 as threshold before exiting
     // TODO FIXME run validation code above if set
     // before exiting...
-    double tex_1 = 0.0, tex_2 = 0.0;
+    GraphWeight tex_1 = 0.0, tex_2 = 0.0;
     if(currMod <= threshold + prevMod) {
         if (thresholdScaling && !runOnePhase && phase < 10) {
             tex_1 = MPI_Wtime();
