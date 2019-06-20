@@ -137,7 +137,7 @@ void loadSimpleFile(Graph *&g, const std::string &fileName,
         w = 1.0;
 
     if (wtype == RANDOM_WEIGHT)
-        w = (GraphWeight)genRandom(RANDOM_MIN_WEIGHT, RANDOM_MAX_WEIGHT);
+        w = genRandom(RANDOM_MIN_WEIGHT, RANDOM_MAX_WEIGHT);
 
     edgeList.push_back({v0, v1, w});
     edgeCount[v0+1]++;

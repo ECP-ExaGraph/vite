@@ -165,7 +165,7 @@ void loadSNAPFile(Graph *&g, const std::string &fileName, Weight_t wtype)
           weight = 1.0;
 
       if (wtype == RANDOM_WEIGHT)
-          weight = (GraphWeight)genRandom(RANDOM_MIN_WEIGHT, RANDOM_MAX_WEIGHT);
+          weight = genRandom(RANDOM_MIN_WEIGHT, RANDOM_MAX_WEIGHT);
 
       edgeList.emplace_back(v0, v1, weight);
       edgeList.emplace_back(v1, v0, weight);

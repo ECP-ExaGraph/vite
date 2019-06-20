@@ -80,10 +80,10 @@ double mytimer(void)
 
 // Random number generator from B. Stroustrup: 
 // http://www.stroustrup.com/C++11FAQ.html#std-random
-double genRandom(double low, double high)
+GraphWeight genRandom(GraphWeight low, GraphWeight high)
 {
     static std::default_random_engine re {};
-    using Dist = std::uniform_real_distribution<double>;
+    using Dist = std::uniform_real_distribution<GraphWeight>;
     static Dist uid {};
     return uid(re, Dist::param_type{low,high});
 }

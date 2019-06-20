@@ -114,17 +114,15 @@ void loadDimacsFile(Graph *&g, const std::string &fileName, Weight_t wtype)
         weight = 1.0;
 
     if (wtype == RANDOM_WEIGHT)
-        weight = (GraphWeight)genRandom(RANDOM_MIN_WEIGHT, RANDOM_MAX_WEIGHT);
+        weight = genRandom(RANDOM_MIN_WEIGHT, RANDOM_MAX_WEIGHT);
 
     if (!ifs || ifs.fail()) {
       std::cerr << "Error parsing DIMACS edge" << std::endl;
       exit(EXIT_FAILURE);
     }
 
-    edgeSets.insert({source-1, dest-1, 
-            static_cast<GraphWeight>(weight)});
-    edgeSets.insert({dest-1, source-1, 
-            static_cast<GraphWeight>(weight)});
+    edgeSets.insert({source-1, dest-1, weight});
+    edgeSets.insert({dest-1, source-1, weight});
   }
 
   ifs.close();
@@ -205,11 +203,9 @@ void loadDimacsFileUn(Graph *&g, const std::string &fileName, Weight_t wtype)
         weight = 1.0;
 
     if (wtype == RANDOM_WEIGHT)
-        weight = (GraphWeight)genRandom(RANDOM_MIN_WEIGHT, RANDOM_MAX_WEIGHT);
+        weight = genRandom(RANDOM_MIN_WEIGHT, RANDOM_MAX_WEIGHT);
 
-
-    edgeSets.insert({source-1, dest-1, 
-            static_cast<GraphWeight>(weight)});
+    edgeSets.insert({source-1, dest-1, weight});
   }
 
   ifs.close();

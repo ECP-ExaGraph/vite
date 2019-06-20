@@ -116,10 +116,9 @@ void loadMetisFile(Graph *&g, const std::string &fileName, Weight_t wtype)
             weight = 1.0;
 
         if (wtype == RANDOM_WEIGHT)
-            weight = (GraphWeight)genRandom(RANDOM_MIN_WEIGHT, RANDOM_MAX_WEIGHT);
+            weight = genRandom(RANDOM_MIN_WEIGHT, RANDOM_MAX_WEIGHT);
 
         edge.weight = weight;
-        //std::cout<<i <<","<<edge.tail<<std::endl;
 	edgePos++;
       }
       g->setEdgeStartForVertex(i + 1L, edgePos);
@@ -144,7 +143,7 @@ void loadMetisFile(Graph *&g, const std::string &fileName, Weight_t wtype)
             weight = 1.0;
 
         if (wtype == RANDOM_WEIGHT)
-            weight = (GraphWeight)genRandom(RANDOM_MIN_WEIGHT, RANDOM_MAX_WEIGHT);
+            weight = genRandom(RANDOM_MIN_WEIGHT, RANDOM_MAX_WEIGHT);
 
 	j++;
 	Edge &edge = g->getEdge(edgePos);

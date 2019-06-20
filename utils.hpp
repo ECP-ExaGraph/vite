@@ -97,7 +97,7 @@ typedef enum
 double mytimer(void);
 
 // uses a static random engine (seed)
-double genRandom(double low, double high);
+GraphWeight genRandom(GraphWeight low, GraphWeight high);
 
 // sort edge list
 void processGraphData(Graph &g, std::vector<GraphElem> &edgeCount,

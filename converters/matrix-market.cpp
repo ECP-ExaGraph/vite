@@ -187,7 +187,7 @@ void loadMatrixMarketFile(Graph *&g, const std::string &fileName, Weight_t wtype
               weight = 1.0;
 
           if (wtype == RANDOM_WEIGHT)
-              weight = (GraphWeight)(std::fabs(genRandom(RANDOM_MIN_WEIGHT, RANDOM_MAX_WEIGHT)));
+              weight = genRandom(RANDOM_MIN_WEIGHT, RANDOM_MAX_WEIGHT);
 
           edgeList.emplace_back(source, dest, weight);
           edgeCount[source+1]++;
