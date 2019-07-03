@@ -77,6 +77,7 @@ void loadSimpleFile(Graph *&g, const std::string &fileName,
 
   do {
       GraphElem v0, v1;
+      GraphWeight w;
 
       std::getline(ifs, line);
       if(line[0] == '#' || line[0] == '%') {
@@ -85,7 +86,10 @@ void loadSimpleFile(Graph *&g, const std::string &fileName,
       }
 
       std::istringstream iss(line);
-      iss >> v0 >> v1;
+      if (wtype == ORIG_WEIGHT)
+          iss >> v0 >> v1 >> w;
+      else
+          iss >> v0 >> v1;
 
       if (indexOneBased) {
           v0--; 
@@ -126,7 +130,10 @@ void loadSimpleFile(Graph *&g, const std::string &fileName,
         continue;
 
     std::istringstream iss(line);
-    iss >> v0 >> v1;
+    if (wtype == ORIG_WEIGHT)
+        iss >> v0 >> v1 >> w;
+    else
+        iss >> v0 >> v1;
           
     if (indexOneBased) {
         v0--; 

@@ -82,6 +82,8 @@ void loadSimpleFileUn(Graph *&g, const std::string &fileName, bool indexOneBased
 
   do {
     GraphElem v0, v1;
+    GraphWeight w;
+
     std::getline(ifs, line);
 
     if(line[0]=='#' || line[0]=='%') {
@@ -90,7 +92,10 @@ void loadSimpleFileUn(Graph *&g, const std::string &fileName, bool indexOneBased
     }
 
     std::istringstream iss(line);
-    iss >> v0 >> v1;
+    if (wtype == ORIG_WEIGHT)
+        iss >> v0 >> v1 >> w;
+    else
+        iss >> v0 >> v1;
 
     if (indexOneBased) {
         v0--; 
@@ -137,9 +142,12 @@ void loadSimpleFileUn(Graph *&g, const std::string &fileName, bool indexOneBased
         continue;
     }
     std::istringstream iss(line);
+ 
+    if (wtype == ORIG_WEIGHT)
+        iss >> v0 >> v1 >> w;
+    else
+        iss >> v0 >> v1;
 
-    iss >> v0 >> v1;
-     
     if (indexOneBased) {
         v0--; 
         v1--;
