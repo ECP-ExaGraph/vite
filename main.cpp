@@ -153,7 +153,9 @@ int main(int argc, char *argv[])
 
   td0 = MPI_Wtime();
   DistGraph *dg = nullptr;
- 
+
+  GraphElem teps = 0;
+
   // load the input data file and distribute data    
   if (readBalanced == true)
       loadDistGraphMPIIOBalanced(me, nprocs, ranksPerNode, dg, inputFileName);
@@ -350,6 +352,7 @@ int main(int argc, char *argv[])
     tot_iters += iters;
 
     if(me ==0 ){
+        teps += dg->getTotalNumEdges() * tot_iters;
 #if defined(DONT_CREATE_DIAG_FILES)
         std::cout << " **************************" << std::endl;
         std::cout << "Level "<< phase << std::endl << "Modularity: " << currMod <<", Time: "<<t0-t1<< ", Iterations: " 
@@ -511,16 +514,18 @@ int main(int argc, char *argv[])
   } // end of phases
   
   MPI_Barrier(MPI_COMM_WORLD);
-
   double tot_time = 0.0;
   MPI_Reduce(&total, &tot_time, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
   
-  if(me == 0)
+  if(me == 0) {
 #if defined(DONT_CREATE_DIAG_FILES)
       std::cout << "TERMINATE TIME: " << (tot_time/nprocs) << std::endl;
+      std::cout << "TEPS: " << (double)teps/(double)(tot_time/nprocs) << std::endl;
 #else
       ofs<< "TERMINATE TIME: "<< total<<std::endl;
+      ofs<< "TEPS: " << (double)teps/(double)(tot_time/nprocs) <<std::endl;
 #endif
+  }
 
   // dump community information in a file    
   if (outputFiles) {
