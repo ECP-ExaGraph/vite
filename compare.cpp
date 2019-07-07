@@ -64,7 +64,13 @@ void compare_communities(std::vector<GraphElem> const& C1,
 
     assert(N1>0 && N2>0);
     assert(N1 == N2);
-    
+   
+    int nT;
+#pragma omp parallel
+    {
+        nT = omp_get_num_threads();
+    }
+
     //Compute number of communities in each set:
     GraphElem nC1=-1;
 #pragma omp parallel for reduction(max: nC1)
@@ -114,6 +120,8 @@ void compare_communities(std::vector<GraphElem> const& C1,
 #pragma omp atomic update
             commPtr1[C1[i]+1]++;
     }
+
+#pragma omp parallel for
     for(GraphElem i = 0; i < nC1; i++) {
         clusterDist1[i] = commPtr1[i+1]; //Zeroth position is not valid
     }
@@ -159,6 +167,7 @@ void compare_communities(std::vector<GraphElem> const& C1,
             commPtr2[C2[i]+1]++;
     }
 
+#pragma omp parallel for
     for(GraphElem i = 0; i < nC2; i++) {
         clusterDist2[i] = commPtr2[i+1]; //Zeroth position is not valid
     }
@@ -184,55 +193,77 @@ void compare_communities(std::vector<GraphElem> const& C1,
 #endif   
     
     //////////STEP 3:  Compute statistics:
-    GraphElem SameSame = 0, SameDiff = 0, DiffSame = 0, DiffDiff = 0;
-    
-    //Compare all pairs of vertices from the perspective of C1 (ground truth):
+    // thread-private vars
+    GraphElem tSameSame[nT], tSameDiff[nT], tDiffSame[nT], nAgree[nT];
 #pragma omp parallel for
-    for(GraphElem ci = 0; ci < nC1; ci++) {
-        GraphElem adj1 = commPtr1[ci];
-        GraphElem adj2 = commPtr1[ci+1];
-        for(GraphElem i=adj1; i<adj2; i++) {
-            for(GraphElem j=i+1; j<adj2; j++) {
-                //Check if the two vertices belong to the same community in C2
-                if(C2[commIndex1[i]] == C2[commIndex1[j]]) {
-#pragma omp atomic update
-                    SameSame++; //Increment the counter: SameSame -- True Positive
-                } else {
-#pragma omp atomic update
-                    SameDiff++; //Increment the counter: SameDiff -- False Negative
-                }
-            }//End of for(j)
-        }//End of for(i)
-    }//End of for(ci)
+    for (int i=0; i < nT; i++) {
+        tSameSame[i] = 0;
+        tSameDiff[i] = 0;
+        tDiffSame[i] = 0;
+        nAgree[i]    = 0;
+    }
+
+    //Compare all pairs of vertices from the perspective of C1 (ground truth):
+#pragma omp parallel
+    {
+        int tid = omp_get_thread_num();
+#pragma omp for
+        for(GraphElem ci = 0; ci < nC1; ci++) {
+            GraphElem adj1 = commPtr1[ci];
+            GraphElem adj2 = commPtr1[ci+1];
+            for(GraphElem i = adj1; i < adj2; i++) {
+                for(GraphElem j = i+1; j < adj2; j++) {
+                    //Check if the two vertices belong to the same community in C2
+                    if(C2[commIndex1[i]] == C2[commIndex1[j]]) {
+                        tSameSame[tid]++;
+                    } else {
+                        tSameDiff[tid]++;
+                    }
+                }//End of for(j)
+            }//End of for(i)
+        }//End of for(ci)
+    }//End of parallel region
 #ifdef DEBUG_PRINTF     
     ofs << "Done parsing C1..." << std::endl;
 #endif
 
     //Compare all pairs of vertices from the perspective of C2:
-    GraphElem nAgree = 0;
-#pragma omp parallel for
-    for(GraphElem ci = 0; ci < nC2; ci++) {
-        GraphElem adj1 = commPtr2[ci];
-        GraphElem adj2 = commPtr2[ci+1];
-        for(GraphElem i=adj1; i<adj2; i++) {
-            for(GraphElem j=i+1; j<adj2; j++) {
-                //Check if the two vertices belong to the same community in C2
-                if(C1[commIndex2[i]] == C1[commIndex2[j]]) {
-#pragma omp atomic update
-                    nAgree++; //Increment the counter: SameSame -- True Positive
-                } else {
-#pragma omp atomic update
-                    DiffSame++; //Increment the counter: DiffSame -- False Positive
-                }
-            }//End of for(j)
-        }//End of for(i)
-    }//End of for(ci)
+#pragma omp parallel
+    {
+        int tid = omp_get_thread_num();
+#pragma omp for
+        for(GraphElem ci = 0; ci < nC2; ci++) {
+            GraphElem adj1 = commPtr2[ci];
+            GraphElem adj2 = commPtr2[ci+1];
+            for(GraphElem i = adj1; i < adj2; i++) {
+                for(GraphElem j = i+1; j < adj2; j++) {
+                    //Check if the two vertices belong to the same community in C2
+                    if(C1[commIndex2[i]] == C1[commIndex2[j]]) {
+                        nAgree[tid]++;
+                    } else {
+                        tDiffSame[tid]++;
+                    }
+                }//End of for(j)
+            }//End of for(i)
+        }//End of for(ci)
+    }//End of parallel region
 
-    assert(SameSame == nAgree);
 #ifdef DEBUG_PRINTF     
     ofs << "Done parsing C2..." << std::endl;
 #endif
+    
+    GraphElem SameSame = 0, SameDiff = 0, DiffSame = 0, Agree = 0;
+#pragma omp parallel for reduction(+:SameSame) reduction(+:SameDiff) \
+reduction(+:DiffSame) reduction(+:Agree)
+    for (int i=0; i < nT; i++) {
+        SameSame += tSameSame[i];
+        SameDiff += tSameDiff[i];
+        DiffSame += tDiffSame[i];
+        Agree    += nAgree[i];
+    }
 
+    assert(SameSame == Agree);
+    
     double precision = (double)SameSame / (double)(SameSame + DiffSame);
     double recall    = (double)SameSame / (double)(SameSame + SameDiff);
     
