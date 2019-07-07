@@ -380,8 +380,8 @@ int main(int argc, char *argv[])
         else
             break;
     }
-
-    // create new graph and rebuild 
+     
+    /// Create new graph and rebuild 
     if (!runOnePhase) {
         t1 = MPI_Wtime();
 
@@ -397,7 +397,7 @@ int main(int argc, char *argv[])
         ofs<< "Rebuild Time: "<<t0-t1<<std::endl;
 #endif
     }
-    
+
     /// Store communities in every phase
     if (outputFiles || compareCommunities) { 
         
@@ -409,7 +409,35 @@ int main(int argc, char *argv[])
 #ifdef DEBUG_PRINTF    
             std::cout << "Updated community list per level into global array at root..." << std::endl;
 #endif
-            const GraphElem N = cvectAll.size();
+    
+            const GraphElem Nc = cvectAll.size();
+            std::vector<GraphElem> cvectRen(Nc, 0);
+            std::map<GraphElem, GraphElem> kval;
+            GraphElem nidx = 0;
+            
+            std::copy(cvectAll.begin(), cvectAll.end(), cvectRen.begin());
+            std::sort(cvectRen.begin(), cvectRen.end()); // default < cmp
+
+            // fill the map with new indices
+            for (GraphElem n = 0; n < Nc; n++)
+            {     
+                if (kval.find(cvectRen[n]) == kval.end())
+                {
+                    kval.insert(std::pair<GraphElem,GraphElem>(cvectRen[n], nidx));
+                    nidx++;
+                }
+            }
+
+            // update cvectAll
+            for (GraphElem c = 0; c < Nc; c++)
+            {
+                if (kval.find(cvectAll[c]) != kval.end())
+                    cvectAll[c] = kval[cvectAll[c]];
+            }
+
+            cvectRen.clear();
+            kval.clear();
+
             if (phase == 0) 
                 std::copy(cvectAll.begin(), cvectAll.end(), &commAll[0]);
             else {
@@ -442,7 +470,7 @@ int main(int argc, char *argv[])
 
         MPI_Barrier(MPI_COMM_WORLD);
     }
-
+    
     prevMod = currMod;
     currMod = -1;
  
