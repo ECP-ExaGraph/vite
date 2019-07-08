@@ -395,11 +395,11 @@ int main(int argc, char *argv[])
                 kval.clear();
 
                 if (phase == 0) 
-                    std::copy(cvectAll.begin(), cvectAll.end(), &commAll[0]);
+                    std::copy(cvectAll.begin(), cvectAll.end(), commAll.begin());
                 else {
 
                     GraphElem k = 0;
-                    std::vector<bool> updated(nv);
+                    std::vector<bool> updated(nv); // nv == total #vertices
 
                     for (GraphElem i = 0; i < nv; i++) {
                         if (!updated[i]) { // ignore updated vertices
