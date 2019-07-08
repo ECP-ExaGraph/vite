@@ -205,6 +205,6 @@ void loadGroundTruthFile(std::vector<GraphElem>& commGroundTruth,
 // gather current community info to root
 void gatherAllComm(int root, int me, int nprocs, 
         std::vector<GraphElem>& commAll, 
-        std::vector<GraphElem> const& localComm);
+        const CommunityVector& localComm);
 
 #endif
