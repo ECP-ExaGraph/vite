@@ -193,8 +193,7 @@ int main(int argc, char *argv[])
 #endif
 #endif
 
-  GraphWeight currMod = -1.0;
-  GraphWeight prevMod = -1.0;
+  GraphWeight currMod = -1.0, prevMod = -1.0;
   double total=0;
   int phase = 0, short_phase = 0;
 
@@ -219,7 +218,7 @@ int main(int argc, char *argv[])
 
   // outermost loop
   while(1) {
-    GraphWeight ptotal = 0;
+    double ptotal = 0;
     
     // if threshold-scaling is ON, then
     // use larger threshold towards the
@@ -350,8 +349,119 @@ int main(int argc, char *argv[])
     t0 = MPI_Wtime();
 
     tot_iters += iters;
+         
+    ptotal += (t0-t1);
+     
+    if((currMod - prevMod) > threshold) {
+        
+        /// Store communities in every phase
+        if (outputFiles || compareCommunities) { 
 
-    if(me ==0 ){
+            // gather cvect into root
+            gatherAllComm(0 /*root*/, me, nprocs, cvectAll, cvect);
+
+            // update community info
+            if (me == 0) {
+#ifdef DEBUG_PRINTF    
+                std::cout << "Updated community list per level into global array at root..." << std::endl;
+#endif
+
+                const GraphElem Nc = cvectAll.size();
+                std::vector<GraphElem> cvectRen(Nc, 0);
+                std::map<GraphElem, GraphElem> kval;
+                GraphElem nidx = 0;
+
+                std::copy(cvectAll.begin(), cvectAll.end(), cvectRen.begin());
+                std::sort(cvectRen.begin(), cvectRen.end()); // default < cmp
+
+                // fill the map with new indices
+                for (GraphElem n = 0; n < Nc; n++)
+                {     
+                    if (kval.find(cvectRen[n]) == kval.end())
+                    {
+                        kval.insert(std::pair<GraphElem,GraphElem>(cvectRen[n], nidx));
+                        nidx++;
+                    }
+                }
+
+                // update cvectAll
+                for (GraphElem c = 0; c < Nc; c++)
+                {
+                    if (kval.find(cvectAll[c]) != kval.end())
+                        cvectAll[c] = kval[cvectAll[c]];
+                }
+
+                cvectRen.clear();
+                kval.clear();
+
+                if (phase == 0) 
+                    std::copy(cvectAll.begin(), cvectAll.end(), &commAll[0]);
+                else {
+
+                    GraphElem k = 0;
+                    std::vector<bool> updated(nv);
+
+                    for (GraphElem i = 0; i < nv; i++) {
+                        if (!updated[i]) { // ignore updated vertices
+
+                            for (GraphElem j = i+1; j < nv; j++) {
+                                if ((commAll[i] == commAll[j]) && !updated[j]) {
+
+                                    commAll[j] = cvectAll[k];
+                                    updated[j] = true;
+
+                                    // mark it, will be updated after loop
+                                    if (!updated[i]) 
+                                        updated[i] = true;
+                                }
+                            }
+
+                            commAll[i] = cvectAll[k];
+                            if (updated[i]) // incr iff marked prior
+                                k++;
+                        }
+                    }
+                }
+            }
+
+            MPI_Barrier(MPI_COMM_WORLD);
+        }
+        
+        /// Create new graph and rebuild 
+        if (!runOnePhase) {
+            t1 = MPI_Wtime();
+
+            distbuildNextLevelGraph(nprocs, me, dg, ssz, rsz, 
+                    ssizes, rsizes, svdata, rvdata, cvect);
+
+            t0 = MPI_Wtime();
+
+            if(me == 0) 
+#if defined(DONT_CREATE_DIAG_FILES)
+                std::cout<< "Rebuild Time: "<<t0-t1<<std::endl;
+#else
+                ofs<< "Rebuild Time: "<<t0-t1<<std::endl;
+#endif
+        }
+    }
+    else { // modularity gain is not enough, exit phase.
+
+        // if thresholdScaling is ON, and the program exits
+        // in between the cycle, make sure it at least runs 
+        // ONCE with 1E-6 as threshold before exiting
+        GraphWeight tex_1 = 0.0, tex_2 = 0.0;
+        if (thresholdScaling && !runOnePhase && phase < 10) {
+            tex_1 = MPI_Wtime();
+            currMod = distLouvainMethod(me, nprocs, *dg, ssz, rsz, ssizes, rsizes, 
+                    svdata, rvdata, cvect, currMod, 1.0E-6, iters);
+            tex_2 = MPI_Wtime();
+            ptotal += (tex_2 - tex_1);
+        }
+        
+        break;
+    }
+
+    if(me == 0 ) {
         teps += dg->getTotalNumEdges() * tot_iters;
 #if defined(DONT_CREATE_DIAG_FILES)
         std::cout << " **************************" << std::endl;
@@ -363,123 +473,15 @@ int main(int argc, char *argv[])
             << tot_iters << std::endl;
 #endif
     }
-    ptotal += (t0-t1);
-   
-    // if thresholdScaling is ON, and the program exits
-    // in between the cycle, make sure it at least runs 
-    // ONCE with 1E-6 as threshold before exiting
-    // TODO FIXME run validation code above if set
-    // before exiting...
-    GraphWeight tex_1 = 0.0, tex_2 = 0.0;
-    if(currMod <= threshold + prevMod) {
-        if (thresholdScaling && !runOnePhase && phase < 10) {
-            tex_1 = MPI_Wtime();
-            currMod = distLouvainMethod(me, nprocs, *dg, ssz, rsz, ssizes, rsizes, 
-                    svdata, rvdata, cvect, currMod, 1.0E-6, iters);
-            tex_2 = MPI_Wtime();
-            ptotal += (tex_2 - tex_1);
-            break;
-        }
-        else
-            break;
-    }
-     
-    /// Create new graph and rebuild 
-    if (!runOnePhase) {
-        t1 = MPI_Wtime();
 
-        distbuildNextLevelGraph(nprocs, me, dg, ssz, rsz, 
-                ssizes, rsizes, svdata, rvdata, cvect);
+    MPI_Barrier(MPI_COMM_WORLD);
 
-        t0 = MPI_Wtime();
-
-        if(me == 0) 
-#if defined(DONT_CREATE_DIAG_FILES)
-        std::cout<< "Rebuild Time: "<<t0-t1<<std::endl;
-#else
-        ofs<< "Rebuild Time: "<<t0-t1<<std::endl;
-#endif
-    }
-
-    /// Store communities in every phase
-    if (outputFiles || compareCommunities) { 
-        
-        // gather cvect into root
-        gatherAllComm(0 /*root*/, me, nprocs, cvectAll, cvect);
-
-        // update community info
-        if (me == 0) {
-#ifdef DEBUG_PRINTF    
-            std::cout << "Updated community list per level into global array at root..." << std::endl;
-#endif
-    
-            const GraphElem Nc = cvectAll.size();
-            std::vector<GraphElem> cvectRen(Nc, 0);
-            std::map<GraphElem, GraphElem> kval;
-            GraphElem nidx = 0;
-            
-            std::copy(cvectAll.begin(), cvectAll.end(), cvectRen.begin());
-            std::sort(cvectRen.begin(), cvectRen.end()); // default < cmp
-
-            // fill the map with new indices
-            for (GraphElem n = 0; n < Nc; n++)
-            {     
-                if (kval.find(cvectRen[n]) == kval.end())
-                {
-                    kval.insert(std::pair<GraphElem,GraphElem>(cvectRen[n], nidx));
-                    nidx++;
-                }
-            }
-
-            // update cvectAll
-            for (GraphElem c = 0; c < Nc; c++)
-            {
-                if (kval.find(cvectAll[c]) != kval.end())
-                    cvectAll[c] = kval[cvectAll[c]];
-            }
-
-            cvectRen.clear();
-            kval.clear();
-
-            if (phase == 0) 
-                std::copy(cvectAll.begin(), cvectAll.end(), &commAll[0]);
-            else {
-
-                GraphElem k = 0;
-  		std::vector<bool> updated(nv);
-
-                for (GraphElem i = 0; i < nv; i++) {
-                    if (!updated[i]) { // ignore updated vertices
-
-                        for (GraphElem j = i+1; j < nv; j++) {
-                            if ((commAll[i] == commAll[j]) && !updated[j]) {
-
-                                commAll[j] = cvectAll[k];
-                                updated[j] = true;
-
-                                // mark it, will be updated after loop
-                                if (!updated[i]) 
-                                    updated[i] = true;
-                            }
-                        }
-
-                        commAll[i] = cvectAll[k];
-                        if (updated[i]) // incr iff marked prior
-                            k++;
-                    }
-                }
-            }
-        }
-
-        MPI_Barrier(MPI_COMM_WORLD);
-    }
-    
     prevMod = currMod;
-    currMod = -1;
+    currMod = -1.0;
  
     ptotal+=(t0-t1);
 
-    if(me == 0){
+    if(me == 0) {
 #if defined(DONT_CREATE_DIAG_FILES)
         std::cout<< "Phase Total time: " << ptotal << std::endl;
 #else
@@ -514,6 +516,7 @@ int main(int argc, char *argv[])
   } // end of phases
   
   MPI_Barrier(MPI_COMM_WORLD);
+  
   double tot_time = 0.0;
   MPI_Reduce(&total, &tot_time, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
   

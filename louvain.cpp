@@ -538,7 +538,7 @@ GraphWeight distLouvainMethod(const int me, const int nprocs, const DistGraph &d
     ofs << "Modularity computation + communication time: " << (t1 - t0) << std::endl;
 #endif
 
-    if ((currMod - prevMod) < threshMod){
+    if ((currMod - prevMod) < threshMod) {
 #ifdef DEBUG_PRINTF  
         ofs << "Break here - no updates " << std::endl;
 #endif
@@ -2303,7 +2303,7 @@ GraphWeight distComputeModularity(const Graph &g, CommVector &localCinfo,
   const double t1 = MPI_Wtime();
 #endif
 
-  GraphWeight currMod = std::fabs((e_a_xx[0] * constantForSecondTerm) - (e_a_xx[1] * constantForSecondTerm *
+  GraphWeight currMod = ((e_a_xx[0] * constantForSecondTerm) - (e_a_xx[1] * constantForSecondTerm *
 						     constantForSecondTerm));
 #ifdef DEBUG_PRINTF  
   ofs << "le_xx: " << le_xx << ", la2_x: " << la2_x << std::endl;
