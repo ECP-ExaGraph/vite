@@ -2303,7 +2303,7 @@ GraphWeight distComputeModularity(const Graph &g, CommVector &localCinfo,
   const double t1 = MPI_Wtime();
 #endif
 
-  GraphWeight currMod = ((e_a_xx[0] * constantForSecondTerm) - (e_a_xx[1] * constantForSecondTerm *
+  GraphWeight currMod = std::fabs((e_a_xx[0] * constantForSecondTerm) - (e_a_xx[1] * constantForSecondTerm *
 						     constantForSecondTerm));
 #ifdef DEBUG_PRINTF  
   ofs << "le_xx: " << le_xx << ", la2_x: " << la2_x << std::endl;
