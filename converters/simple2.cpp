@@ -78,7 +78,7 @@ void loadSimpleFileUn(Graph *&g, const std::string &fileName, bool indexOneBased
   }
 
   std::string line;
-  GraphElem maxVertex = -1, numEdges = 0, numVertices;
+  GraphElem maxVertex = -1, numEdges = 0, numVertices, skipLines = 0;
 
   do {
     GraphElem v0, v1;
@@ -87,7 +87,7 @@ void loadSimpleFileUn(Graph *&g, const std::string &fileName, bool indexOneBased
     std::getline(ifs, line);
 
     if(line[0]=='#' || line[0]=='%') {
-        std::cout<< "Skip Line" <<std::endl;
+        skipLines++;
         continue;
     }
 
@@ -111,7 +111,6 @@ void loadSimpleFileUn(Graph *&g, const std::string &fileName, bool indexOneBased
   } while (!ifs.eof());
 
   numEdges--;  // Do not consider last line
-  numEdges *=2;
 
   numVertices = maxVertex + 1;
 
@@ -129,9 +128,9 @@ void loadSimpleFileUn(Graph *&g, const std::string &fileName, bool indexOneBased
   ifs.open(fileName.c_str(), std::ifstream::in);
 
   std::vector<GraphElem> edgeCount(numVertices + 1);
-  std::vector<GraphElemTuple> edgeList(numEdges*2);
+  std::vector<GraphElemTuple> edgeList;
 
-  for (GraphElem i = 0; i < numEdges; i++) {
+  for (GraphElem i = 0; i < numEdges+skipLines; i++) {
     GraphElem v0, v1;
     GraphWeight w;
 
@@ -159,18 +158,18 @@ void loadSimpleFileUn(Graph *&g, const std::string &fileName, bool indexOneBased
     if (wtype == RANDOM_WEIGHT)
         w = genRandom(RANDOM_MIN_WEIGHT, RANDOM_MAX_WEIGHT);
 
-    edgeList.emplace_back(v0, v1, w);
-    edgeList.emplace_back(v1, v0, w);
+    edgeList.push_back({v0, v1, w});
+    edgeList.push_back({v1, v0, w});
 
     edgeCount[v0+1]++;
     edgeCount[v1+1]++;
   }
 
-  numEdges *= 2;
-
   ifs.close();
 
   t3 = mytimer();
+  
+  numEdges = edgeList.size();
 
   std::cout << "Edge read time: " << (t3 - t2) << std::endl;
 
