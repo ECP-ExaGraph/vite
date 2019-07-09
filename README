@@ -40,6 +40,8 @@ Possible options (can be combined):
                       to indicate undirected/directed graph
 6. -s               : Input graph is directed edge list
 7. -u               : Input graph is undirected edge list 
+                      (Can be used for Graph Challenge official 
+                      datasets - http://graphchallenge.mit.edu/) 
 8. -r               : Create random edge weights
 9. -w               : Initialize edge weights to 1
 10. -o              : Output binary file with full path

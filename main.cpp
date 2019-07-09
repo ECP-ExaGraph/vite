@@ -390,7 +390,6 @@ int main(int argc, char *argv[])
 
                 cvectRen.clear();
                 kval.clear();
-
                 if (phase == 0) 
                     std::copy(cvectAll.begin(), cvectAll.end(), commAll.begin());
                 else {
