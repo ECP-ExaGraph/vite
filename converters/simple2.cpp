@@ -135,11 +135,9 @@ void loadSimpleFileUn(Graph *&g, const std::string &fileName, bool indexOneBased
     GraphWeight w;
 
     std::getline(ifs, line);
-    if(line[0]=='#' || line[0]=='%') {		
-        std::cout<< "Skip Line" <<std::endl;
-        i--;
+    if(line[0]=='#' || line[0]=='%')		
         continue;
-    }
+    
     std::istringstream iss(line);
  
     if (wtype == ORIG_WEIGHT)
