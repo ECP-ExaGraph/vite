@@ -287,9 +287,9 @@ int main(int argc, char *argv[])
         t1 = MPI_Wtime();
         numColors = distColoringMultiHashMinMax(me, nprocs, *dg, colors, (maxColors/2), MAX_COVG, false);
 #if defined(DONT_CREATE_DIAG_FILES)
-        std::cout << "Number of colors (2*nHash): " << numColors << std::endl;
+        if (me == 0) std::cout << "Number of colors (2*nHash): " << numColors << std::endl;
 #else
-        ofs << "Number of colors (2*nHash): " << numColors << std::endl;
+        if (me == 0) ofs << "Number of colors (2*nHash): " << numColors << std::endl;
 #endif
         t0 = MPI_Wtime();
         if(me == 0) 
@@ -353,7 +353,7 @@ int main(int argc, char *argv[])
     ptotal += (t0-t1);
      
     if((currMod - prevMod) > threshold) {
-        
+               
         /// Store communities in every phase
         if (outputFiles || compareCommunities) { 
 
@@ -365,7 +365,7 @@ int main(int argc, char *argv[])
 #ifdef DEBUG_PRINTF    
                 std::cout << "Updated community list per level into global array at root..." << std::endl;
 #endif
-
+                // ensure clusters are contiguous
                 const GraphElem Nc = cvectAll.size();
                 std::vector<GraphElem> cvectRen(Nc, 0);
                 std::map<GraphElem, GraphElem> kval;
@@ -374,7 +374,7 @@ int main(int argc, char *argv[])
                 std::copy(cvectAll.begin(), cvectAll.end(), cvectRen.begin());
                 std::sort(cvectRen.begin(), cvectRen.end()); // default < cmp
 
-                // fill the map with new indices
+                // create a dictionary and map to new indices
                 for (GraphElem n = 0; n < Nc; n++)
                 {     
                     if (kval.find(cvectRen[n]) == kval.end())
@@ -386,10 +386,7 @@ int main(int argc, char *argv[])
 
                 // update cvectAll
                 for (GraphElem c = 0; c < Nc; c++)
-                {
-                    if (kval.find(cvectAll[c]) != kval.end())
-                        cvectAll[c] = kval[cvectAll[c]];
-                }
+                    cvectAll[c] = kval[cvectAll[c]];
 
                 cvectRen.clear();
                 kval.clear();
@@ -397,33 +394,11 @@ int main(int argc, char *argv[])
                 if (phase == 0) 
                     std::copy(cvectAll.begin(), cvectAll.end(), commAll.begin());
                 else {
-
-                    GraphElem k = 0;
-                    std::vector<bool> updated(nv); // nv == total #vertices
-
-                    for (GraphElem i = 0; i < nv; i++) {
-                        if (!updated[i]) { // ignore updated vertices
-
-                            for (GraphElem j = i+1; j < nv; j++) {
-                                if ((commAll[i] == commAll[j]) && !updated[j]) {
-
-                                    commAll[j] = cvectAll[k];
-                                    updated[j] = true;
-
-                                    // mark it, will be updated after loop
-                                    if (!updated[i]) 
-                                        updated[i] = true;
-                                }
-                            }
-
-                            commAll[i] = cvectAll[k];
-                            if (updated[i]) // incr iff marked prior
-                                k++;
-                        }
-                    }
+                    for (GraphElem p = 0; p < commAll.size(); p++)
+                        commAll[p] = cvectAll[commAll[p]];
                 }
             }
-
+            
             MPI_Barrier(MPI_COMM_WORLD);
         }
         
