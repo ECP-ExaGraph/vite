@@ -102,7 +102,7 @@ static void parseCommandLine(const int argc, char * const argv[]);
 
 int main(int argc, char *argv[])
 {
-  double t0, t1, t2, t3, ti = 0.0;
+  double t0, t1, t2, t3;
   
   MPI_Init(&argc, &argv);
 
@@ -403,19 +403,20 @@ int main(int argc, char *argv[])
         
         /// Create new graph and rebuild 
         if (!runOnePhase) {
-            t1 = MPI_Wtime();
+            t3 = MPI_Wtime();
 
             distbuildNextLevelGraph(nprocs, me, dg, ssz, rsz, 
                     ssizes, rsizes, svdata, rvdata, cvect);
 
-            t0 = MPI_Wtime();
+            t2 = MPI_Wtime();
 
             if(me == 0) 
 #if defined(DONT_CREATE_DIAG_FILES)
-                std::cout<< "Rebuild Time: "<<t0-t1<<std::endl;
+                std::cout<< "Rebuild Time: "<<t2-t3<<std::endl;
 #else
-                ofs<< "Rebuild Time: "<<t0-t1<<std::endl;
+                ofs<< "Rebuild Time: "<<t2-t3<<std::endl;
 #endif
+            ptotal+=(t2-t3);
         }
     }
     else { // modularity gain is not enough, exit phase.
@@ -460,7 +461,7 @@ int main(int argc, char *argv[])
         std::cout<< "Phase Total time: " << ptotal << std::endl;
 #else
         ofs<< "Phase Total time: " << ptotal << std::endl;
-        ofcks << " **************************" << std::endl;
+        ofcks << "**************************" << std::endl;
 #endif
     }
 
