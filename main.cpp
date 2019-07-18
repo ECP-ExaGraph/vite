@@ -454,8 +454,6 @@ int main(int argc, char *argv[])
     prevMod = currMod;
     currMod = -1.0;
  
-    ptotal+=(t0-t1);
-
     if(me == 0) {
 #if defined(DONT_CREATE_DIAG_FILES)
         std::cout<< "Phase Total time: " << ptotal << std::endl;
@@ -465,7 +463,7 @@ int main(int argc, char *argv[])
 #endif
     }
 
-    total+=ptotal;
+    total += ptotal;
     phase++;
 
     // Exit if only running for a single phase
