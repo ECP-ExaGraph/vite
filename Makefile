@@ -24,13 +24,13 @@ ifeq ($(ENABLE_NETWORKIT),1)
 endif
 
 GOBJFILES = main.o rebuild.o distgraph.o louvain.o coloring.o compare.o
-FOBJFILES = converters/mpi-io.o converters/matrix-market.o converters/dimacs.o converters/metis.o converters/simple2.o converters/simple.o converters/snap.o utils.o
+FOBJFILES = converters/convert.o converters/matrix-market.o converters/dimacs.o converters/metis.o converters/simple2.o converters/simple.o converters/snap.o utils.o
 ALLOBJFILES = $(GOBJFILES) $(FOBJFILES) $(NOBJFILES)
 
 BIN = bin
 
 GTARGET = $(BIN)/graphClustering
-FTARGET = $(BIN)/fileConvertDist
+FTARGET = $(BIN)/fileConvert
 
 ALLTARGETS = $(GTARGET) $(FTARGET) $(NTARGET) 
 
