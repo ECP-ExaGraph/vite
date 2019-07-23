@@ -89,9 +89,10 @@ struct GraphElemTuple {
 
 typedef enum 
 {
-    RANDOM_WEIGHT,    // random weight
-    ONE_WEIGHT,       // weight = 1
-    ORIG_WEIGHT       // use original weights of graph
+    RND_WEIGHT,    // random real weight, between 0-1
+    ONE_WEIGHT,    // weight = 1
+    ORG_WEIGHT,    // use original weights of graph
+    ABS_WEIGHT     // use absolute original weights of graph
 } Weight_t;
 
 double mytimer(void);

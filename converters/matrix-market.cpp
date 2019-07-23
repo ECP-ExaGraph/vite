@@ -153,59 +153,88 @@ void loadMatrixMarketFile(Graph *&g, const std::string &fileName, Weight_t wtype
 
   std::cout << "Loading Matrix Market file: " << fileName << ", numvertices: " << numVertices <<
       ", numEdges: " << numEdges << std::endl;
-
-  std::vector<GraphElem> edgeCount(numVertices+1);
-  std::vector<GraphElemTuple> edgeList;
-
+  
   std::string crd;
   GraphElem source, dest;
   GraphWeight weight = 1.0;
+  std::vector<GraphElem> edgeCount(numVertices+1);
+  std::vector<GraphElemTuple> edgeList;
 
   // weights will be converted to positive numbers
+  if (isSymmetric) {
 
-  for (GraphElem i = 0; i < numEdges; i++) {
+      for (GraphElem i = 0; i < numEdges; i++) {
 
-      std::getline(ifs, crd);
-      std::istringstream iss(crd);
+          std::getline(ifs, crd);
+          std::istringstream iss(crd);
 
-      if (isPattern)
-          iss >> source >> dest;
-      else {
-          iss >> source >> dest >> weight;
-          weight = std::fabs(weight);
-      }
+          if (isPattern)
+              iss >> source >> dest;
+          else {
+              iss >> source >> dest >> weight;
+              if (wtype == ABS_WEIGHT)
+                  weight = std::fabs(weight);
+          }
 
-      source--; // Matrix market has 1-based indexing
-      dest--;
+          source--; // Matrix market has 1-based indexing
+          dest--;
 
-      assert((source >= 0) && (source < numVertices));
-      assert((dest >= 0) && (dest < numVertices));
-
-      if (source != dest) {
+          assert((source >= 0) && (source < numVertices));
+          assert((dest >= 0) && (dest < numVertices));
 
           if (wtype == ONE_WEIGHT)
               weight = 1.0;
 
-          if (wtype == RANDOM_WEIGHT)
+          if (wtype == RND_WEIGHT)
+              weight = genRandom(RANDOM_MIN_WEIGHT, RANDOM_MAX_WEIGHT);
+
+          if (source != dest) {
+              edgeList.emplace_back(source, dest, weight);
+              edgeList.emplace_back(dest, source, weight);
+              edgeCount[source+1]++;
+              edgeCount[dest+1]++;
+          }
+          else {
+              edgeList.emplace_back(source, dest, weight);
+              edgeCount[source+1]++;
+          }
+      }
+  }
+  else { // if General type (directed)
+      
+      for (GraphElem i = 0; i < numEdges; i++) {
+
+          std::getline(ifs, crd);
+          std::istringstream iss(crd);
+
+          if (isPattern)
+              iss >> source >> dest;
+          else {
+              iss >> source >> dest >> weight;
+              if (wtype == ABS_WEIGHT)
+                  weight = std::fabs(weight);
+          }
+
+          source--; // Matrix market has 1-based indexing
+          dest--;
+
+          assert((source >= 0) && (source < numVertices));
+          assert((dest >= 0) && (dest < numVertices));
+
+          if (wtype == ONE_WEIGHT)
+              weight = 1.0;
+
+          if (wtype == RND_WEIGHT)
               weight = genRandom(RANDOM_MIN_WEIGHT, RANDOM_MAX_WEIGHT);
 
           edgeList.emplace_back(source, dest, weight);
           edgeCount[source+1]++;
-
-          // general is assumed to be undirected
-          // as per example on
-          // https://math.nist.gov/MatrixMarket/formats.html
-          if (isGeneral) {
-              edgeList.emplace_back(dest, source, weight);
-              edgeCount[dest+1]++;
-          }
       }
   }
 
   ifs.close();
 
-  if (isGeneral) 
-      numEdges *= 2;
+  numEdges = edgeList.size();
 
   g = new Graph(numVertices, numEdges);
   processGraphData(*g, edgeCount, edgeList, numVertices, numEdges);

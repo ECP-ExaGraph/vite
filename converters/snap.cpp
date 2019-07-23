@@ -129,10 +129,10 @@ void loadSNAPFile(Graph *&g, const std::string &fileName, Weight_t wtype)
   GraphElem numUniqueVertices = 0;
 
   // update numEdges, as the input graph is
-  // assumed to be undirected
+  // assumed to be undirected and weights are 1
   GraphElem nnz = 0;
   for (GraphElem i = 0L; i < numEdges; i++) {
-      GraphWeight weight = 1.0;
+      GraphWeight weight;
       GraphElem v0, v1;
       ifs >> v0 >> v1;
 
@@ -161,11 +161,11 @@ void loadSNAPFile(Graph *&g, const std::string &fileName, Weight_t wtype)
           numUniqueVertices++; //Increment the number
       }
       
+      if (wtype == RND_WEIGHT)
+          weight = genRandom(RANDOM_MIN_WEIGHT, RANDOM_MAX_WEIGHT);
+
       if (wtype == ONE_WEIGHT)
           weight = 1.0;
-
-      if (wtype == RANDOM_WEIGHT)
-          weight = genRandom(RANDOM_MIN_WEIGHT, RANDOM_MAX_WEIGHT);
 
       edgeList.emplace_back(v0, v1, weight);
       edgeList.emplace_back(v1, v0, weight);

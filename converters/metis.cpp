@@ -53,6 +53,8 @@
 
 #include "metis.hpp"
 
+// This function will most likely be purged from future versions of Vite
+
 void loadMetisFile(Graph *&g, const std::string &fileName, Weight_t wtype)
 {
   std::ifstream ifs;
@@ -115,7 +117,7 @@ void loadMetisFile(Graph *&g, const std::string &fileName, Weight_t wtype)
         if (wtype == ONE_WEIGHT)
             weight = 1.0;
 
-        if (wtype == RANDOM_WEIGHT)
+        if (wtype == RND_WEIGHT)
             weight = genRandom(RANDOM_MIN_WEIGHT, RANDOM_MAX_WEIGHT);
 
         edge.weight = weight;
@@ -142,8 +144,11 @@ void loadMetisFile(Graph *&g, const std::string &fileName, Weight_t wtype)
         if (wtype == ONE_WEIGHT)
             weight = 1.0;
 
-        if (wtype == RANDOM_WEIGHT)
+        if (wtype == RND_WEIGHT)
             weight = genRandom(RANDOM_MIN_WEIGHT, RANDOM_MAX_WEIGHT);
+
+        if (wtype == ABS_WEIGHT)
+            weight = std::fabs(weight);
 
 	j++;
 	Edge &edge = g->getEdge(edgePos);

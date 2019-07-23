@@ -55,6 +55,8 @@
 #include "../utils.hpp"
 #include "../graph.hpp"
 
-void loadMetisFile(Graph *&g, const std::string &fileName, Weight_t wtype = ORIG_WEIGHT);
+// This function will most likely be purged from future versions of Vite
+
+void loadMetisFile(Graph *&g, const std::string &fileName, Weight_t wtype = ABS_WEIGHT);
 
 #endif // __METIS_H

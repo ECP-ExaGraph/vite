@@ -92,7 +92,7 @@ void loadSimpleFileUn(Graph *&g, const std::string &fileName, bool indexOneBased
     }
 
     std::istringstream iss(line);
-    if (wtype == ORIG_WEIGHT)
+    if (wtype == ORG_WEIGHT)
         iss >> v0 >> v1 >> w;
     else
         iss >> v0 >> v1;
@@ -140,7 +140,7 @@ void loadSimpleFileUn(Graph *&g, const std::string &fileName, bool indexOneBased
     
     std::istringstream iss(line);
  
-    if (wtype == ORIG_WEIGHT)
+    if (wtype == ORG_WEIGHT || wtype == ABS_WEIGHT)
         iss >> v0 >> v1 >> w;
     else
         iss >> v0 >> v1;
@@ -153,8 +153,11 @@ void loadSimpleFileUn(Graph *&g, const std::string &fileName, bool indexOneBased
     if (wtype == ONE_WEIGHT)
         w = 1.0;
 
-    if (wtype == RANDOM_WEIGHT)
+    if (wtype == RND_WEIGHT)
         w = genRandom(RANDOM_MIN_WEIGHT, RANDOM_MAX_WEIGHT);
+    
+    if (wtype == ABS_WEIGHT)
+        w = std::fabs(w);
 
     edgeList.push_back({v0, v1, w});
     edgeList.push_back({v1, v0, w});

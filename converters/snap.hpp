@@ -56,6 +56,6 @@
 #include "../utils.hpp"
 #include "../graph.hpp"
 
-void loadSNAPFile(Graph *&g, const std::string &fileName, Weight_t wtype = ORIG_WEIGHT);
+void loadSNAPFile(Graph *&g, const std::string &fileName, Weight_t wtype = ONE_WEIGHT);
 
 #endif // __SNAP_H

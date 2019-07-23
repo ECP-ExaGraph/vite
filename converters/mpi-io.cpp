@@ -83,13 +83,14 @@ static bool simpleFormat2 = false;
 static bool snapFormat = false;
 
 static bool output = false;
-static bool randomEdgeWeight = false;
 static bool indexOneBased = false;
 
 // this option will override whatever 
 // weights there are in the file, and 
 // make weights 1.0 for ALL edges
 static bool makeWeightsOne = false;
+static bool randomEdgeWeight = false;
+static bool origEdgeWeight = false;
 
 static void parseCommandLine(const int argc, char * const argv[]);
 
@@ -112,60 +113,74 @@ int main(int argc, char *argv[])
   {
       if (dimacs_directed) {
           if (randomEdgeWeight)
-              loadDimacsFile(g, inputFileName, RANDOM_WEIGHT);
+              loadDimacsFile(g, inputFileName, RND_WEIGHT);
           else if (makeWeightsOne)
               loadDimacsFile(g, inputFileName, ONE_WEIGHT);
+          else if (origEdgeWeight) 
+              loadDimacsFile(g, inputFileName, ORG_WEIGHT);
           else
-              loadDimacsFile(g, inputFileName, ORIG_WEIGHT);
+              loadDimacsFile(g, inputFileName, ABS_WEIGHT);
       }
       else {
           if (randomEdgeWeight)
-              loadDimacsFileUn(g, inputFileName, RANDOM_WEIGHT);
+              loadDimacsFileUn(g, inputFileName, RND_WEIGHT);
           else if (makeWeightsOne)
               loadDimacsFileUn(g, inputFileName, ONE_WEIGHT);
+          else if (origEdgeWeight) 
+              loadDimacsFileUn(g, inputFileName, ORG_WEIGHT);
           else
-              loadDimacsFileUn(g, inputFileName, ORIG_WEIGHT);
+              loadDimacsFileUn(g, inputFileName, ABS_WEIGHT);
       }
   }
   else if (metisFormat) {
       if (randomEdgeWeight)
-          loadMetisFile(g, inputFileName, RANDOM_WEIGHT);
+          loadMetisFile(g, inputFileName, RND_WEIGHT);
       else if (makeWeightsOne)
           loadMetisFile(g, inputFileName, ONE_WEIGHT);
+      else if (origEdgeWeight) 
+          loadMetisFile(g, inputFileName, ORG_WEIGHT);
       else
-          loadMetisFile(g, inputFileName, ORIG_WEIGHT);
+          loadMetisFile(g, inputFileName, ABS_WEIGHT);
   }
   else if (simpleFormat) {
       if (randomEdgeWeight)
-          loadSimpleFile(g, inputFileName, indexOneBased, RANDOM_WEIGHT);
+          loadSimpleFile(g, inputFileName, indexOneBased, RND_WEIGHT);
       else if (makeWeightsOne)
           loadSimpleFile(g, inputFileName, indexOneBased, ONE_WEIGHT);
+      else if (origEdgeWeight) 
+          loadSimpleFile(g, inputFileName, indexOneBased, ORG_WEIGHT);
       else
-          loadSimpleFile(g, inputFileName, indexOneBased, ORIG_WEIGHT);
+          loadSimpleFile(g, inputFileName, indexOneBased, ABS_WEIGHT);
   }
   else if (matrixMarketFormat) {
       if (randomEdgeWeight)
-          loadMatrixMarketFile(g, inputFileName, RANDOM_WEIGHT);
+          loadMatrixMarketFile(g, inputFileName, RND_WEIGHT);
       else if (makeWeightsOne)
           loadMatrixMarketFile(g, inputFileName, ONE_WEIGHT);
+      else if (origEdgeWeight) 
+          loadMatrixMarketFile(g, inputFileName, ORG_WEIGHT);
       else
-          loadMatrixMarketFile(g, inputFileName, ORIG_WEIGHT);
+          loadMatrixMarketFile(g, inputFileName, ABS_WEIGHT);
   }
   else if (simpleFormat2) {
       if (randomEdgeWeight)
-          loadSimpleFileUn(g, inputFileName, RANDOM_WEIGHT);
+          loadSimpleFileUn(g, inputFileName, RND_WEIGHT);
       else if (makeWeightsOne)
           loadSimpleFileUn(g, inputFileName, ONE_WEIGHT);
+      else if (origEdgeWeight) 
+          loadSimpleFileUn(g, inputFileName, ORG_WEIGHT);
       else
-          loadSimpleFileUn(g, inputFileName, ORIG_WEIGHT);
+          loadSimpleFileUn(g, inputFileName, ABS_WEIGHT);
   }
   else if (snapFormat) {
       if (randomEdgeWeight)
-          loadSNAPFile(g, inputFileName, RANDOM_WEIGHT);
+          loadSNAPFile(g, inputFileName, RND_WEIGHT);
       else if (makeWeightsOne)
           loadSNAPFile(g, inputFileName, ONE_WEIGHT);
+      else if (origEdgeWeight) 
+          loadSNAPFile(g, inputFileName, ORG_WEIGHT);
       else
-          loadSNAPFile(g, inputFileName, ORIG_WEIGHT);
+          loadSNAPFile(g, inputFileName, ABS_WEIGHT);
   }
   else {
       std::cerr << "Format not specified correctly!" << std::endl;
@@ -226,7 +241,7 @@ void parseCommandLine(const int argc, char * const argv[])
 {
   int ret;
 
-  while ((ret = getopt(argc, argv, "f:o:md:uesnrzwh:")) != -1) {
+  while ((ret = getopt(argc, argv, "f:o:md:uesnrizwh:")) != -1) {
     switch (ret) {
     case 'f':
       inputFileName.assign(optarg);
@@ -255,6 +270,9 @@ void parseCommandLine(const int argc, char * const argv[])
       break;
     case 'r':
       randomEdgeWeight = true;
+      break;
+    case 'i':
+      origEdgeWeight = true;
       break;
     case 'z':
       indexOneBased = true;

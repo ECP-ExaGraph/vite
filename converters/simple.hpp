@@ -56,7 +56,7 @@
 #include "../utils.hpp"
 #include "../graph.hpp"
 
-void loadSimpleFile(Graph *&g, const std::string &fileName, bool indexOneBased, Weight_t wtype = ORIG_WEIGHT);
-void loadSimpleFileUn(Graph *&g, const std::string &fileName, bool indexOneBased, Weight_t wtype = ORIG_WEIGHT);
+void loadSimpleFile(Graph *&g, const std::string &fileName, bool indexOneBased, Weight_t wtype = ABS_WEIGHT);
+void loadSimpleFileUn(Graph *&g, const std::string &fileName, bool indexOneBased, Weight_t wtype = ABS_WEIGHT);
 
 #endif // __LOAD_SIMPLE_H

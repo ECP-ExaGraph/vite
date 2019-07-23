@@ -55,7 +55,7 @@
 #include "../utils.hpp"
 #include "../graph.hpp"
 
-void loadDimacsFileUn(Graph *&g, const std::string &fileName, Weight_t wtype = ORIG_WEIGHT);
-void loadDimacsFile(Graph *&g, const std::string &fileName, Weight_t wtype = ORIG_WEIGHT);
+void loadDimacsFileUn(Graph *&g, const std::string &fileName, Weight_t wtype = ABS_WEIGHT);
+void loadDimacsFile(Graph *&g, const std::string &fileName, Weight_t wtype = ABS_WEIGHT);
 
 #endif // __DIMACS_H

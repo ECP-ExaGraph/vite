@@ -91,7 +91,7 @@ static bool   thresholdScaling          = false;
 // early termination related
 static bool   earlyTerm                 = false;
 static int    ETType                    = 0;
-static GraphWeight ETDelta                   = 1.0;
+static GraphWeight ETDelta              = 1.0;
 
 // community comparison with ground-truth
 static bool  compareCommunities         = false;

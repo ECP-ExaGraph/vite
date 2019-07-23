@@ -55,6 +55,6 @@
 #include "../utils.hpp"
 #include "../graph.hpp"
 
-void loadMatrixMarketFile(Graph *&g, const std::string &fileName, Weight_t wtype = ORIG_WEIGHT);
+void loadMatrixMarketFile(Graph *&g, const std::string &fileName, Weight_t wtype = ABS_WEIGHT);
 
 #endif // __MATRIX_MARKET_H
