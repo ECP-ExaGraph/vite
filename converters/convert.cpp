@@ -68,8 +68,9 @@
 #include "metis.hpp"
 #include "simple.hpp"
 #include "snap.hpp"
+#include "shards.hpp"
 
-static std::string inputFileName, outputFileName;
+static std::string inputFileName, outputFileName, shardedFileArgs;
 static int hdrSize = 0;
 
 static bool matrixMarketFormat = false;
@@ -81,6 +82,7 @@ static bool metisFormat = false;
 static bool simpleFormat = false;
 static bool simpleFormat2 = false;
 static bool snapFormat = false;
+static bool shardedFormat = false;
 
 static bool output = false;
 static bool indexOneBased = false;
@@ -99,7 +101,7 @@ int main(int argc, char *argv[])
   parseCommandLine(argc, argv);
 
   // Only the following formats supported for now
-  assert(dimacsFormat || metisFormat || simpleFormat || matrixMarketFormat|| simpleFormat2 || snapFormat);
+  assert(dimacsFormat || metisFormat || simpleFormat || matrixMarketFormat|| simpleFormat2 || snapFormat || shardedFormat);
 
   Graph *g = NULL;
 
@@ -184,6 +186,36 @@ int main(int argc, char *argv[])
       else
           loadSNAPFile(g, inputFileName, ONE_WEIGHT);
   }
+  else if (shardedFormat) {
+      // fetch arguments, expecting 3
+      std::stringstream ss(shardedFileArgs);
+      std::string s;
+      std::vector<std::string> args;
+
+      while (std::getline(ss, s, ' ')) {
+	args.push_back(s);
+      }
+      if (args.size() != 3) {
+	std::cerr << "For sharded files, expecting (in this order): <shard-dump-file> <start-chunk> <end-chunk>" 
+		  << std::endl;
+    	exit(EXIT_FAILURE);
+      }
+
+      std::string shardDumpFile = args[0];
+      GraphElem startChunk = std::stoi(args[1]);
+      GraphElem endChunk = std::stoi(args[2]);
+
+      args.clear();
+
+      if (randomEdgeWeight)
+	  loadFileShards(g, inputFileName, shardDumpFile, startChunk, endChunk, indexOneBased, RND_WEIGHT);
+      else if (makeWeightsOne)
+	  loadFileShards(g, inputFileName, shardDumpFile, startChunk, endChunk, indexOneBased, ONE_WEIGHT);
+      else if (origEdgeWeight) 
+	  loadFileShards(g, inputFileName, shardDumpFile, startChunk, endChunk, indexOneBased, ORG_WEIGHT);
+      else
+	  loadFileShards(g, inputFileName, shardDumpFile, startChunk, endChunk, indexOneBased, ABS_WEIGHT);
+  }
   else {
       std::cerr << "Format not specified correctly!" << std::endl;
       if (g)
@@ -243,7 +275,7 @@ void parseCommandLine(const int argc, char * const argv[])
 {
   int ret;
 
-  while ((ret = getopt(argc, argv, "f:o:md:uesnrizwh:")) != -1) {
+  while ((ret = getopt(argc, argv, "f:o:md:uesnrix:zwh:")) != -1) {
     switch (ret) {
     case 'f':
       inputFileName.assign(optarg);
@@ -276,6 +308,10 @@ void parseCommandLine(const int argc, char * const argv[])
     case 'i':
       origEdgeWeight = true;
       break;
+    case 'x':
+      shardedFormat = true;
+      shardedFileArgs.assign(optarg);
+      break;
     case 'z':
       indexOneBased = true;
       break;
@@ -293,12 +329,12 @@ void parseCommandLine(const int argc, char * const argv[])
   }
 
   if ((matrixMarketFormat || dimacsFormat || metisFormat || simpleFormat 
-              || simpleFormat2 || snapFormat) == false) {
+              || simpleFormat2 || snapFormat || shardedFormat) == false) {
     std::cerr << "Must select a file format for the input file!" << std::endl;
     exit(EXIT_FAILURE);
   }
   const bool fileFormat[] = { matrixMarketFormat, dimacsFormat, metisFormat, 
-      simpleFormat, simpleFormat2, snapFormat };
+      simpleFormat, simpleFormat2, snapFormat, shardedFormat};
   const int numFormats = sizeof(fileFormat) / sizeof(fileFormat[0]);
 
   int numTrue = 0;

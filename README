@@ -50,7 +50,7 @@ Possible options (can be combined):
 7. -u               : Input graph is undirected edge list 
                       (Can be used for Graph Challenge official 
                       datasets - http://graphchallenge.mit.edu/) 
-8. -g               : Accept weights as is from the file. If this 
+8. -i               : Accept weights as is from the file. If this 
                       option is not passed, then by default the 
                       absolute value of the original weight is 
                       chosen. 
