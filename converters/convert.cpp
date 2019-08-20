@@ -71,7 +71,6 @@
 #include "shards.hpp"
 
 static std::string inputFileName, outputFileName, shardedFileArgs;
-static int hdrSize = 0;
 
 static bool matrixMarketFormat = false;
 
@@ -275,7 +274,7 @@ void parseCommandLine(const int argc, char * const argv[])
 {
   int ret;
 
-  while ((ret = getopt(argc, argv, "f:o:md:uesnrix:zwh:")) != -1) {
+  while ((ret = getopt(argc, argv, "f:o:md:uesnrix:zw")) != -1) {
     switch (ret) {
     case 'f':
       inputFileName.assign(optarg);
@@ -317,10 +316,6 @@ void parseCommandLine(const int argc, char * const argv[])
       break;
     case 'w':
       makeWeightsOne = true;
-      break;
-    case 'h': 
-      hdrSize = atoi(optarg);
-      assert(hdrSize == 32 || hdrSize == 64);
       break;
     default:
       assert(0 && "Should not reach here!!");

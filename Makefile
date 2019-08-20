@@ -1,7 +1,7 @@
 # change to CC for Cray systems
-CXX = mpicxx
+CXX = CC
 
-OPTFLAGS = -g -O3 -xHost -qopenmp -DDONT_CREATE_DIAG_FILES #-DDEBUG_PRINTF -DCHECK_COLORING_CONFLICTS
+OPTFLAGS = -g -O3 -xHost -fopenmp -DDONT_CREATE_DIAG_FILES #-DDEBUG_PRINTF -DCHECK_COLORING_CONFLICTS
 # use export ASAN_OPTIONS=verbosity=1 to check ASAN output
 SNTFLAGS = -std=c++11 -fopenmp -fsanitize=address -O1 -fno-omit-frame-pointer
 CXXFLAGS = -std=c++11 $(OPTFLAGS) #-DUSE_MPI_COLLECTIVES #-DUSE_32_BIT_GRAPH  #-DDEBUG_PRINTF
@@ -25,14 +25,16 @@ endif
 
 GOBJFILES = main.o rebuild.o distgraph.o louvain.o coloring.o compare.o
 FOBJFILES = converters/convert.o converters/matrix-market.o converters/dimacs.o converters/metis.o converters/simple2.o converters/simple.o converters/snap.o converters/shards.o utils.o
-ALLOBJFILES = $(GOBJFILES) $(FOBJFILES) $(NOBJFILES)
+POBJFILES = parallel-converters/parallel-converter.o parallel-converters/parallel-shards.o utils.o 
+ALLOBJFILES = $(GOBJFILES) $(FOBJFILES) $(NOBJFILES) $(POBJFILES)
 
 BIN = bin
 
 GTARGET = $(BIN)/graphClustering
 FTARGET = $(BIN)/fileConvert
+PTARGET = $(BIN)/parallelFileConvert
 
-ALLTARGETS = $(GTARGET) $(FTARGET) $(NTARGET) 
+ALLTARGETS = $(GTARGET) $(FTARGET) $(NTARGET) $(PTARGET) 
 
 all: bindir $(ALLTARGETS)
 
@@ -51,6 +53,9 @@ $(FTARGET):  $(FOBJFILES)
 	$(CXX) $^ $(OPTFLAGS) -o $@ $(LDFLAGS)
 
 $(NTARGET): utils.o $(NOBJFILES)
+	$(CXX) $^ $(OPTFLAGS) -o $@ $(LDFLAGS)
+
+$(PTARGET): $(POBJFILES)
 	$(CXX) $^ $(OPTFLAGS) -o $@ $(LDFLAGS)
 
 .PHONY: bindir clean
