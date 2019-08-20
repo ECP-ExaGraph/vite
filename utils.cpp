@@ -108,11 +108,16 @@ void processGraphData(Graph &g, std::vector<GraphElem> &edgeCount,
   { return ((e0.i_ < e1.i_) || ((e0.i_ == e1.i_) && (e0.j_ < e1.j_))); };
   
   if (!std::is_sorted(edgeList.begin(), edgeList.end(), ecmp)) {
+#if defined(DEBUG_PRINTF)
     std::cout << "Edge list is not sorted" << std::endl;
+#endif
     std::sort(edgeList.begin(), edgeList.end(), ecmp);
   }
-  else
+  else {
+#if defined(DEBUG_PRINTF)
     std::cout << "Edge list is sorted!" << std::endl;
+#endif
+  }
 
   GraphElem ePos = 0;
   for (GraphElem i = 0; i < nv; i++) {

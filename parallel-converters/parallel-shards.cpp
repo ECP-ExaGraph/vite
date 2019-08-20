@@ -116,74 +116,72 @@ void loadParallelFileShards(int rank, int nprocs, int naggr, Graph* g,
 
   MPI_Barrier(MPI_COMM_WORLD);
 
-  // read the files 
-  for (std::map<std::string, GraphElem>::iterator mpit = fileProc.begin(); mpit != fileProc.end(); ++mpit) {
+  // read the files
+  if (rank < fileProc.size()) {
+	  for (std::map<std::string, GraphElem>::iterator mpit = fileProc.begin(); mpit != fileProc.end(); ++mpit) {
 
-      if (rank == mpit->second) {
-         
-          // retrieve lo/hi range from file name string
-          std::string fileName_full = (mpit->first).substr((mpit->first).find_last_of("/") + 1);
-          std::string fileName_noext = fileName_full.substr(0, fileName_full.find("."));
-          std::string fileName_right = fileName_noext.substr(fileName_full.find("__") + 2);
-          std::string fileName_left = fileName_noext.substr(0, fileName_full.find("__"));
-          
-          GraphElem v_lo = (std::stol(fileName_left) - 1)*shardCount;
-          GraphElem v_hi = (std::stol(fileName_right) - 1)*shardCount;
+		  // retrieve lo/hi range from file name string
+		  std::string fileName_full = (mpit->first).substr((mpit->first).find_last_of("/") + 1);
+		  std::string fileName_noext = fileName_full.substr(0, fileName_full.find("."));
+		  std::string fileName_right = fileName_noext.substr(fileName_full.find("__") + 2);
+		  std::string fileName_left = fileName_noext.substr(0, fileName_full.find("__"));
+
+		  GraphElem v_lo = (std::stol(fileName_left) - 1)*shardCount;
+		  GraphElem v_hi = (std::stol(fileName_right) - 1)*shardCount;
 #if defined(DEBUG_PRINTF)
-          std::cout << "File processing: " << fileNameShard << "; Ranges: " << v_lo  << ", " << v_hi << std::endl;
+		  std::cout << "File processing: " << fileNameShard << "; Ranges: " << v_lo  << ", " << v_hi << std::endl;
 #endif
-          // open file shard and start reading
-          std::ifstream ifs;
-          ifs.open((mpit->first).c_str(), std::ifstream::in);
- 
-          std::string line;
-          std::getline(ifs, line); // ignore first line
+		  // open file shard and start reading
+		  std::ifstream ifs;
+		  ifs.open((mpit->first).c_str(), std::ifstream::in);
 
-          while(std::getline(ifs, line)) {
+		  std::string line;
+		  std::getline(ifs, line); // ignore first line
 
-              GraphElem v0, v1, info;
-              GraphWeight w;
-              char ch;
+		  while(std::getline(ifs, line)) {
 
-              std::istringstream iss(line);
+			  GraphElem v0, v1, info;
+			  GraphWeight w;
+			  char ch;
 
-              // read from current shard 
-              if (wtype == ORG_WEIGHT)
-                  iss >> v0 >> ch >> v1 >> ch >> info >> ch >> w;
-              else
-                  iss >> v0 >> ch >> v1 >> ch >> info;
+			  std::istringstream iss(line);
 
-              if (indexOneBased) {
-                  v0--; 
-                  v1--;
-              }
+			  // read from current shard 
+			  if (wtype == ORG_WEIGHT)
+				  iss >> v0 >> ch >> v1 >> ch >> info >> ch >> w;
+			  else
+				  iss >> v0 >> ch >> v1 >> ch >> info;
 
-              // normalize v0/v1 by adding lo/hi shard ID
-              v0 += v_lo;
-              v1 += v_hi;
+			  if (indexOneBased) {
+				  v0--; 
+				  v1--;
+			  }
 
-              edgeList.push_back({v0, v1, w});
-              edgeList.push_back({v1, v0, w});
+			  // normalize v0/v1 by adding lo/hi shard ID
+			  v0 += v_lo;
+			  v1 += v_hi;
 
-              if (v0 > maxVertex)
-                  maxVertex = v0;
-              if (v1 > maxVertex)
-                  maxVertex = v1;
+			  edgeList.push_back({v0, v1, w});
+			  edgeList.push_back({v1, v0, w});
 
-              numEdges++;
-          }
+			  if (v0 > maxVertex)
+				  maxVertex = v0;
+			  if (v1 > maxVertex)
+				  maxVertex = v1;
 
-          // close current shard
-          ifs.close();
-      }
-      else
-          continue;
+			  numEdges++;
+		  }
+
+		  // close current shard
+		  ifs.close();
+	  }
   }
+  
+  // idle processes wait at the barrier
+  MPI_Barrier(MPI_COMM_WORLD);
 
   fileProc.clear();
   
-  MPI_Barrier(MPI_COMM_WORLD);
-
   if (!indexOneBased)
 	numVertices = maxVertex + 1;
   else
@@ -199,9 +197,11 @@ void loadParallelFileShards(int rank, int nprocs, int naggr, Graph* g,
   }
 
   // local sorting of edge list
-  g = new Graph(numVertices, numEdges);
-  processGraphData(*g, edgeCount, edgeList, numVertices, numEdges);
- 
+  if (numEdges > 0) {
+	  g = new Graph(numVertices, numEdges);
+	  processGraphData(*g, edgeCount, edgeList, numVertices, numEdges);
+  }
+
   GraphElem globalNumVertices, globalNumEdges;
   MPI_Reduce(&numVertices, &globalNumVertices, 1, MPI_GRAPH_TYPE, MPI_SUM, 0, MPI_COMM_WORLD);
   MPI_Reduce(&numEdges, &globalNumEdges, 1, MPI_GRAPH_TYPE, MPI_SUM, 0, MPI_COMM_WORLD);
@@ -230,71 +230,79 @@ void loadParallelFileShards(int rank, int nprocs, int naggr, Graph* g,
       MPI_File_write(fh, &globalNumVertices, sizeof(GraphElem), MPI_BYTE, &status);
       MPI_File_write(fh, &globalNumEdges, sizeof(GraphElem), MPI_BYTE, &status);
   }
+  
+  MPI_Barrier(MPI_COMM_WORLD);
 
   GraphElem v_offset = 0;
   MPI_Exscan(&numVertices, &v_offset, 1, MPI_GRAPH_TYPE, MPI_SUM, MPI_COMM_WORLD);
 
-  MPI_Barrier(MPI_COMM_WORLD);
-  
   // write the edge prefix counts first (required for CSR 
   // construction during reading)
   uint64_t tot_bytes = (numVertices+1)*sizeof(GraphElem);
-  MPI_Offset offset = 2*sizeof(GraphElem) + v_offset*sizeof(GraphElem);
-    
-  if (tot_bytes < INT_MAX)
-      MPI_File_write_at(fh, offset, &g->edgeListIndexes[0], tot_bytes, MPI_BYTE, &status);
-    else {
-        int chunk_bytes=INT_MAX;
-        uint8_t *curr_pointer = (uint8_t*) &g->edgeListIndexes[0];
-        uint64_t transf_bytes=0;
-
-        while (transf_bytes<tot_bytes)
-        {
-            MPI_File_write_at(fh, offset, curr_pointer, chunk_bytes, MPI_BYTE, &status);
-            transf_bytes+=chunk_bytes;
-            offset+=chunk_bytes;
-            curr_pointer+=chunk_bytes;
-
-            if (tot_bytes-transf_bytes<INT_MAX)
-                chunk_bytes=tot_bytes-transf_bytes;
-        } 
-    }  
   
-    MPI_Barrier(MPI_COMM_WORLD);
-    
-    // write the edge list next
-    g->setNumEdges(numEdges);
-    tot_bytes = numEdges*(sizeof(Edge));
+  if (tot_bytes > 0) {
 
-    //GraphElem e_offset = 0;
-    //MPI_Exscan(&numEdges, &e_offset, 1, MPI_GRAPH_TYPE, MPI_SUM, MPI_COMM_WORLD);
-    //offset = 2*sizeof(GraphElem) + (globalNumVertices+1)*sizeof(GraphElem) + e_offset*(sizeof(Edge));
-    
-    offset = 2*sizeof(GraphElem) + (globalNumVertices+1)*sizeof(GraphElem) + g->edgeListIndexes[0]*(sizeof(Edge));
+	  MPI_Offset offset = 2*sizeof(GraphElem) + v_offset*sizeof(GraphElem);
 
-    if (tot_bytes<INT_MAX)
-        MPI_File_write_at(fh, offset, &g->edgeList[0], tot_bytes, MPI_BYTE, &status);
-    else {
-        int chunk_bytes=INT_MAX;
-        uint8_t *curr_pointer = (uint8_t*)&g->edgeList[0];
-        uint64_t transf_bytes=0;
+	  if (tot_bytes < INT_MAX)
+		  MPI_File_write_at(fh, offset, &g->edgeListIndexes[0], tot_bytes, MPI_BYTE, &status);
+	  else {
+		  int chunk_bytes=INT_MAX;
+		  uint8_t *curr_pointer = (uint8_t*) &g->edgeListIndexes[0];
+		  uint64_t transf_bytes=0;
 
-        while (transf_bytes<tot_bytes)
-        {
-            MPI_File_write_at(fh, offset, curr_pointer, chunk_bytes, MPI_BYTE, &status);
-            transf_bytes+=chunk_bytes;
-            offset+=chunk_bytes;
-            curr_pointer+=chunk_bytes;
+		  while (transf_bytes<tot_bytes)
+		  {
+			  MPI_File_write_at(fh, offset, curr_pointer, chunk_bytes, MPI_BYTE, &status);
+			  transf_bytes+=chunk_bytes;
+			  offset+=chunk_bytes;
+			  curr_pointer+=chunk_bytes;
 
-            if (tot_bytes-transf_bytes<INT_MAX)
-                chunk_bytes=tot_bytes-transf_bytes;
-        } 
-    }    
+			  if (tot_bytes-transf_bytes<INT_MAX)
+				  chunk_bytes=tot_bytes-transf_bytes;
+		  } 
+	  }  
+  }
+
+  MPI_Barrier(MPI_COMM_WORLD);
+
+  // write the edge list next
+  g->setNumEdges(numEdges);
+  tot_bytes = numEdges*(sizeof(Edge));
+
+  //GraphElem e_offset = 0;
+  //MPI_Exscan(&numEdges, &e_offset, 1, MPI_GRAPH_TYPE, MPI_SUM, MPI_COMM_WORLD);
+  //offset = 2*sizeof(GraphElem) + (globalNumVertices+1)*sizeof(GraphElem) + e_offset*(sizeof(Edge));
+
+  if (tot_bytes > 0) {
+	  
+	  MPI_Offset offset = 2*sizeof(GraphElem) + (globalNumVertices+1)*sizeof(GraphElem) + g->edgeListIndexes[0]*(sizeof(Edge));
+
+	  if (tot_bytes<INT_MAX)
+		  MPI_File_write_at(fh, offset, &g->edgeList[0], tot_bytes, MPI_BYTE, &status);
+	  else {
+		  int chunk_bytes=INT_MAX;
+		  uint8_t *curr_pointer = (uint8_t*)&g->edgeList[0];
+		  uint64_t transf_bytes=0;
+
+		  while (transf_bytes<tot_bytes)
+		  {
+			  MPI_File_write_at(fh, offset, curr_pointer, chunk_bytes, MPI_BYTE, &status);
+			  transf_bytes+=chunk_bytes;
+			  offset+=chunk_bytes;
+			  curr_pointer+=chunk_bytes;
+
+			  if (tot_bytes-transf_bytes<INT_MAX)
+				  chunk_bytes=tot_bytes-transf_bytes;
+		  } 
+	  }
+    }	  
 
     MPI_File_close(&fh);
 
     if (rank == 0) {
-        std::cout << "Graph #Vertices: " << globalNumVertices << ", #Edges: " << globalNumEdges << std::endl;
+	    std::cout << "Completed graph construction using " << nprocs << " processes (some idle)." << std::endl;      
+	    std::cout << "Graph #Vertices: " << globalNumVertices << ", #Edges: " << globalNumEdges << std::endl;
     }
 
     delete g;
