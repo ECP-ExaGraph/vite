@@ -48,8 +48,8 @@
 //
 // ************************************************************************
 
-#ifndef __LOAD_SHARDS_H
-#define __LOAD_SHARDS_H
+#ifndef __LOAD_PARALLEL_SHARDS_H
+#define __LOAD_PARALLEL_SHARDS_H
 
 #include <string>
 
@@ -63,4 +63,4 @@ void loadParallelFileShards(int rank, int nprocs, int naggr, Graph* g,
         const int fileStartIndex, const int fileEndIndex, bool indexOneBased, 
         Weight_t wtype = ORG_WEIGHT, GraphElem shardCount = 1000000);
 
-#endif // __LOAD_SHARDS_H
+#endif // __LOAD_PARALLEL_SHARDS_H
