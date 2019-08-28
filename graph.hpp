@@ -98,7 +98,7 @@ public:
 
   void setEdgeStartForVertex(const GraphElem vertex, const GraphElem e0);
   Edge &getEdge(const GraphElem edge);
-
+  
   friend std::ostream &operator <<(std::ostream &os, const Graph &g);
 
 protected:

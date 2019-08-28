@@ -62,6 +62,16 @@
 // and just have one graph class like 
 // miniVite
 
+#define PI                          (3.14159)
+#define SR_UP_TAG                   100
+#define SR_DOWN_TAG                 101
+#define SR_SIZES_UP_TAG             102
+#define SR_SIZES_DOWN_TAG           103
+#define SR_X_UP_TAG                 104
+#define SR_X_DOWN_TAG               105
+#define SR_Y_UP_TAG                 106
+#define SR_Y_DOWN_TAG               107
+
 typedef std::vector<GraphElem> PartRanges;
 
 class DistGraph {
@@ -84,6 +94,8 @@ public:
   const Graph &getLocalGraph() const;
   GraphElem getBase(const int me) const;
   GraphElem getBound(const int me) const;
+  GraphElem localToGlobal(GraphElem idx, const int me) const;
+  GraphElem globalToLocal(GraphElem idx, const int me) const;
   int getOwner(const GraphElem v) const;
   PartRanges *parts;
   void setNumEdges(GraphElem numEdges); 
@@ -98,6 +110,9 @@ void loadDistGraphMPIIO(int me, int nprocs, int ranks_per_node,
         DistGraph *&dg, std::string& fileName);
 void loadDistGraphMPIIOBalanced(int me, int nprocs, int ranks_per_node, 
         DistGraph *&dg, std::string& fileName);
+// graph generation
+void generateInMemGraph(int rank, int nprocs, DistGraph *&dg, GraphElem nv, int randomEdgePercent);
+DistGraph* generateRGG(int rank, int nprocs, GraphWeight nv, GraphWeight rn, int randomEdgePercent);
 
 inline DistGraph::DistGraph()
   : totalNumVertices(0), totalNumEdges(0), localGraph(NULL), parts(NULL)
@@ -218,7 +233,17 @@ inline GraphElem DistGraph::getBound(const int me) const
     return parts->operator[](me + 1);
 #endif
 } // getBound
-
+  
+inline GraphElem DistGraph::localToGlobal(GraphElem idx, const int me) const
+{ 
+    return (idx + getBase(me)); 
+} // localToGlobal
+        
+inline GraphElem DistGraph::globalToLocal(GraphElem idx, const int me) const
+{ 
+    return (idx - getBase(me)); 
+} // globalToLocal
+ 
 inline void DistGraph::setNumEdges(const GraphElem numEdges)
 { this->totalNumEdges=numEdges; }
 

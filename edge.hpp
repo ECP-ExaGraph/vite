@@ -76,6 +76,22 @@ struct Edge {
   Edge();
 };
 
+struct EdgeTuple
+{
+    GraphElem ij_[2];
+    GraphWeight w_;
+
+    EdgeTuple(GraphElem i, GraphElem j, GraphWeight w): 
+        ij_{i, j}, w_(w)
+    {}
+    EdgeTuple(GraphElem i, GraphElem j): 
+        ij_{i, j}, w_(1.0) 
+    {}
+    EdgeTuple(): 
+        ij_{-1, -1}, w_(0.0)
+    {}
+};
+
 typedef std::vector<GraphElem> EdgeIndexes;
 
 inline Edge::Edge()

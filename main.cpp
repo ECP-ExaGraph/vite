@@ -83,6 +83,10 @@ static int    maxColors                 = 8;
 static bool   vertexOrdering            = false;
 static bool   runOnePhase               = false;
 
+static bool   generateGraph             = false;
+static GraphElem numVerticesGenGraph    = 0;
+static int randomEdgePercent            = 0;
+
 static bool   readBalanced              = false;
 static int    ranksPerNode              = 1;
 static bool   outputFiles               = false;
@@ -156,12 +160,17 @@ int main(int argc, char *argv[])
 
   GraphElem teps = 0;
 
-  // load the input data file and distribute data    
-  if (readBalanced == true)
-      loadDistGraphMPIIOBalanced(me, nprocs, ranksPerNode, dg, inputFileName);
-  else
-      loadDistGraphMPIIO(me, nprocs, ranksPerNode, dg, inputFileName);
- 
+  // load the input data file and distribute data   
+  if (generateGraph) {
+      generateInMemGraph(me, nprocs, dg, numVerticesGenGraph, randomEdgePercent);
+  }
+  else {
+      if (readBalanced)
+          loadDistGraphMPIIOBalanced(me, nprocs, ranksPerNode, dg, inputFileName);
+      else
+          loadDistGraphMPIIO(me, nprocs, ranksPerNode, dg, inputFileName);
+  }
+
   MPI_Barrier(MPI_COMM_WORLD);
  
   assert(dg);
@@ -574,7 +583,7 @@ void parseCommandLine(const int argc, char * const argv[])
 {
   int ret;
 
-  while ((ret = getopt(argc, argv, "f:bc:od:r:t:a:ig:zp")) != -1) {
+  while ((ret = getopt(argc, argv, "f:bc:od:r:t:a:ig:zpn:e:")) != -1) {
     switch (ret) {
     case 'f':
       inputFileName.assign(optarg);
@@ -616,6 +625,13 @@ void parseCommandLine(const int argc, char * const argv[])
     case 'p':
       runOnePhase = true;
       break;
+    case 'n':
+      generateGraph = true;
+      numVerticesGenGraph = atol(optarg);
+      break;
+    case 'e':
+      randomEdgePercent = atoi(optarg);
+      break;
     default:
       assert(0 && "Should not reach here!!");
       break;
@@ -632,7 +648,7 @@ void parseCommandLine(const int argc, char * const argv[])
       MPI_Abort(MPI_COMM_WORLD, -99);
   }
   
-  if (me == 0 && inputFileName.empty()) {
+  if (me == 0 && !generateGraph && inputFileName.empty()) {
       std::cerr << "Must specify a binary file name with -f" << std::endl;
       MPI_Abort(MPI_COMM_WORLD, -99);
   }
@@ -650,5 +666,32 @@ void parseCommandLine(const int argc, char * const argv[])
   if (me == 0 && (runOnePhase && thresholdScaling)) {
       std::cerr << "Cannot turn on threshold-cycling (-i) with a single phase run (-p). Re-run using one of the options." << std::endl;
       MPI_Abort(MPI_COMM_WORLD, -99);
+  }
+  
+  if (me == 0 && !generateGraph && randomEdgePercent) {
+      std::cerr << "Must specify -n <...> for graph generation first and then -p <...> to add random edges to it." << std::endl;
+      MPI_Abort(MPI_COMM_WORLD, -99);
+  }
+  
+  if (generateGraph) {
+      // check if number of nodes is divisible by #processes
+      if ((numVerticesGenGraph % nprocs) != 0) {
+          if (me == 0) {
+              std::cout << "[ERROR] For in-memory graph generation, number of vertices must be perfectly divisible by number of processes." << std::endl;
+              std::cout << "Exiting..." << std::endl;
+          }
+          MPI_Abort(MPI_COMM_WORLD, -99);
+      }
+
+      // check if processes are power of 2
+      if (((nprocs != 0) && !(nprocs & (nprocs - 1)))) {
+      }
+      else {
+          if (me == 0) {
+              std::cout << "[ERROR] For in-memory graph generation, number of processes must be a power of 2." << std::endl;
+              std::cout << "Exiting..." << std::endl;
+          }
+          MPI_Abort(MPI_COMM_WORLD, -99);
+      }
   }
 } // parseCommandLine

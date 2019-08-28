@@ -140,5 +140,3 @@ void processGraphData(Graph &g, std::vector<GraphElem> &edgeCount,
     }
   }
 } // processGraphData
-
-
