@@ -419,12 +419,15 @@ int main(int argc, char *argv[])
 
             t2 = MPI_Wtime();
 
-            if(me == 0) 
+            if(me == 0) { 
 #if defined(DONT_CREATE_DIAG_FILES)
+                std::cout << "**************************" << std::endl;
                 std::cout<< "Rebuild Time: "<<t2-t3<<std::endl;
 #else
+                ofs << " **************************" << std::endl;
                 ofs<< "Rebuild Time: "<<t2-t3<<std::endl;
 #endif
+            }
             ptotal+=(t2-t3);
         }
     }
@@ -448,12 +451,10 @@ int main(int argc, char *argv[])
     if(me == 0 ) {
         teps += dg->getTotalNumEdges() * tot_iters;
 #if defined(DONT_CREATE_DIAG_FILES)
-        std::cout << " **************************" << std::endl;
-        std::cout << "Level "<< phase << std::endl << "Modularity: " << currMod <<", Time: "<<t0-t1<< ", Iterations: " 
+        std::cout << "Level "<< phase << ", Modularity: " << currMod <<", Time: "<<t0-t1<< ", Iterations: " 
             << tot_iters << std::endl;
 #else
-        ofs << " **************************" << std::endl;
-        ofs << "Level "<< phase << std::endl << "Modularity: " << currMod <<", Time: "<<t0-t1<< ", Iterations: " 
+        ofs << "Level "<< phase << ", Modularity: " << currMod <<", Time: "<<t0-t1<< ", Iterations: " 
             << tot_iters << std::endl;
 #endif
     }
