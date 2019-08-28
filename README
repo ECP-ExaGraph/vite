@@ -50,16 +50,20 @@ Possible options (can be combined):
 7. -u               : Input graph is undirected edge list 
                       (Can be used for Graph Challenge official 
                       datasets - http://graphchallenge.mit.edu/) 
-8. -i               : Accept weights as is from the file. If this 
+8. -x               : Read a number of files with edge list 
+                      information, usage e.g.: 	
+                      -x "<file-path> <start-chunk> <end-chunk>"
+                      Requires conformant file names.
+9. -i               : Accept weights as is from the file. If this 
                       option is not passed, then by default the 
                       absolute value of the original weight is 
                       chosen. 
-9. -r               : Create random edge weights
-10. -w              : Initialize edge weights to 1.0
-11. -o              : Output binary file with full path
-12. -z              : If the index of input graph is 1-based,
+10. -r              : Create random edge weights
+11. -w              : Initialize edge weights to 1.0
+12. -o              : Output binary file with full path
+13. -z              : If the index of input graph is 1-based,
                       then this option makes it 0-based
-13. -f              : Option preceding input file                      
+14. -f              : Option preceding input graph file                      
 
 ------------------------
 File conversion related
@@ -194,6 +198,13 @@ Possible options (can be combined):
 12. -z           : Only applicable if "-g <gfile>" option is passed. This tells us
                    that the passed ground truth file is 1-based. If this option is
                    not passed, we assume the ground truth to the 0-based.
+13. -n <|V|>     : Generate graph in memory (uses a parallel Random Geometric Graph
+                   generator).
+14. -e <%>       : Used in conjunction with the "-n <>" option to generate RGG. This
+                   option tells the percentage of edges to be added, randomly 
+                   connecting vertices across processes. Currently, the maximum number
+                   of randomly added edges to RGG cannot exceed INT_MAX (there is no 
+                   check to determine this, so exercise caution).
 
 *Note: Option to update inactive vertices percentage is defined as
 macro ET_CUTOFF in louvain.hpp, and the default is 2%.
