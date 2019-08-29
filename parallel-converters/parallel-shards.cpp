@@ -177,6 +177,8 @@ void loadParallelFileShards(int rank, int nprocs, int naggr, Graph* g,
 		  // close current shard
 		  ifs.close();
 	  }
+	  else
+		  continue;
   }
 
   // idle processes wait at the barrier
