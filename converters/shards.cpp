@@ -113,7 +113,6 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath, const std::s
 
 		  // start reading shard
 		  std::string line;
-		  std::getline(ifs, line); // ignore first line
 
 		  while(std::getline(ifs, line)) {
 
