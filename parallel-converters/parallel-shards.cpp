@@ -234,7 +234,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   std::string str = tmp_str.str();
   MPI_Info_set(info, "cb_nodes", str.c_str());
 
-  file_open_error = MPI_File_open(MPI_COMM_WORLD, fileOutPath.c_str(), MPI_MODE_WRONLY, info, &fh); 
+  file_open_error = MPI_File_open(MPI_COMM_WORLD, fileOutPath.c_str(), MPI_MODE_CREATE | MPI_MODE_WRONLY, info, &fh); 
   MPI_Info_free(&info);
 
   if (file_open_error != MPI_SUCCESS) {
