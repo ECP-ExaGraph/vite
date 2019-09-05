@@ -58,8 +58,8 @@
 
 /// Pairwise read files between fileStartIndex and fileEndIndex and store 
 /// it into a single file, also convert to binary
-void loadParallelFileShards(int rank, int nprocs, int naggr, Graph* g, 
-        const std::string &fileInShardsPath, const std::string &fileOutPath, 
+void loadParallelFileShards(int rank, int nprocs, int naggr, 
+	const std::string &fileInShardsPath, const std::string &fileOutPath, 
         const int fileStartIndex, const int fileEndIndex, bool indexOneBased, 
         Weight_t wtype = ORG_WEIGHT, GraphElem shardCount = 1000000);
 

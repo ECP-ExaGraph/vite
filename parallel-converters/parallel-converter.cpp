@@ -88,7 +88,6 @@ int main(int argc, char *argv[])
   MPI_Comm_size(MPI_COMM_WORLD, &size);
   
   parseCommandLine(argc, argv);
-  Graph *g = NULL;
 
   // fetch shard specific arguments, expecting four
   std::stringstream ss(shardedFileArgs);
@@ -123,16 +122,16 @@ int main(int argc, char *argv[])
   t0 = mytimer();
 
   if (randomEdgeWeight)
-      loadParallelFileShards(me, size, nAggrPEs, g, inputFileName, outputFileName, 
+      loadParallelFileShards(me, size, nAggrPEs, inputFileName, outputFileName, 
               startChunk, endChunk, indexOneBased, RND_WEIGHT, shardCount);
   else if (makeWeightsOne)
-      loadParallelFileShards(me, size, nAggrPEs, g, inputFileName, outputFileName, 
+      loadParallelFileShards(me, size, nAggrPEs, inputFileName, outputFileName, 
               startChunk, endChunk, indexOneBased, ONE_WEIGHT, shardCount);
   else if (origEdgeWeight) 
-      loadParallelFileShards(me, size, nAggrPEs, g, inputFileName, outputFileName, 
+      loadParallelFileShards(me, size, nAggrPEs, inputFileName, outputFileName, 
               startChunk, endChunk, indexOneBased, ORG_WEIGHT, shardCount);
   else
-      loadParallelFileShards(me, size, nAggrPEs, g, inputFileName, outputFileName, 
+      loadParallelFileShards(me, size, nAggrPEs, inputFileName, outputFileName, 
               startChunk, endChunk, indexOneBased, ABS_WEIGHT, shardCount);
 
   t1 = mytimer();
