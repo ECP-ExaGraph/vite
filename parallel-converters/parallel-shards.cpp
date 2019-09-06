@@ -187,41 +187,51 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 	numVertices = maxVertex + 1;
   else
 	numVertices = maxVertex;
-	
+
+  // get total #vertices to construct edgeCount
+  GraphElem globalNumVertices, globalNumEdges;
+  MPI_Allreduce(&numVertices, &globalNumVertices, 1, MPI_GRAPH_TYPE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Reduce(&numEdges, &globalNumEdges, 1, MPI_GRAPH_TYPE, MPI_SUM, 0, MPI_COMM_WORLD);
+
   /// Part 2: Count number of edges and sort edges
-  std::vector<GraphElem> edgeCount(numVertices+1);
-  
+  //#vertices << #edges
+  std::vector<GraphElem> edgeCount(globalNumVertices+1);
+
+  // TODO FIXME use OpenMP atomic?  
   for (GraphElem i = 0; i < numEdges; i++) {
 	edgeCount[edgeList[i].i_+1]++;
 	edgeCount[edgeList[i].j_+1]++;
   }
  
+  // we know that PE #0 is processing a file, reduce-sum
+  // into the root process
+  MPI_Reduce(MPI_IN_PLACE, edgeCount.data(), globalNumVertices + 1, MPI_GRAPH_TYPE, 
+		  MPI_SUM, 0, MPI_COMM_WORLD);
+  
   // prefix sum to know where an edge starts 
-  std::vector<GraphElem> ecTmp(numVertices + 1);
-  std::partial_sum(edgeCount.begin(), edgeCount.end(), ecTmp.begin());
-  edgeCount = ecTmp;
+  if (rank == 0) {
+	  std::vector<GraphElem> ecTmp(globalNumVertices + 1);
+	  std::partial_sum(edgeCount.begin(), edgeCount.end(), ecTmp.begin());
+	  edgeCount = ecTmp;
+  }
 
   // local sorting of edge list
   auto ecmp = [] (GraphElemTuple const& e0, GraphElemTuple const& e1)
   { return ((e0.i_ < e1.i_) || ((e0.i_ == e1.i_) && (e0.j_ < e1.j_))); };
-  
+
   if (!std::is_sorted(edgeList.begin(), edgeList.end(), ecmp)) {
 #if defined(DEBUG_PRINTF)
-    std::cout << "Edge list is not sorted" << std::endl;
+	  std::cout << "Edge list is not sorted" << std::endl;
 #endif
-    std::sort(edgeList.begin(), edgeList.end(), ecmp);
+	  std::sort(edgeList.begin(), edgeList.end(), ecmp);
   }
   else {
 #if defined(DEBUG_PRINTF)
-    std::cout << "Edge list is sorted!" << std::endl;
+	  std::cout << "Edge list is sorted!" << std::endl;
 #endif
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
-
-  GraphElem globalNumVertices, globalNumEdges;
-  MPI_Reduce(&numVertices, &globalNumVertices, 1, MPI_GRAPH_TYPE, MPI_SUM, 0, MPI_COMM_WORLD);
-  MPI_Reduce(&numEdges, &globalNumEdges, 1, MPI_GRAPH_TYPE, MPI_SUM, 0, MPI_COMM_WORLD);
 
   /// Part 3: Dump the data to a binary file   
   // number of aggregates to improve MPI IO
@@ -244,23 +254,14 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 
   // write the number of vertices/edges first
   if (rank == 0) {
-      MPI_File_write(fh, &globalNumVertices, sizeof(GraphElem), MPI_BYTE, &status);
-      MPI_File_write(fh, &globalNumEdges, sizeof(GraphElem), MPI_BYTE, &status);
-  }
-  
-  MPI_Barrier(MPI_COMM_WORLD);
+	  MPI_File_write(fh, &globalNumVertices, sizeof(GraphElem), MPI_BYTE, &status);
+	  MPI_File_write(fh, &globalNumEdges, sizeof(GraphElem), MPI_BYTE, &status);
 
-  GraphElem v_offset = 0;
-  MPI_Exscan(&numVertices, &v_offset, 1, MPI_GRAPH_TYPE, MPI_SUM, MPI_COMM_WORLD);
+	  // write the edge prefix counts first (required for CSR 
+	  // construction during reading)
 
-  // write the edge prefix counts first (required for CSR 
-  // construction during reading)
-  uint64_t tot_bytes = numVertices * sizeof(GraphElem);
-
-  // participate in writing only if a process has something to contribute
-  if (tot_bytes > 0) {
-
-	  MPI_Offset offset = 2*sizeof(GraphElem) + v_offset*sizeof(GraphElem);
+	  uint64_t tot_bytes = (globalNumVertices + 1) * sizeof(GraphElem);
+	  MPI_Offset offset = 2*sizeof(GraphElem);
 
 	  if (tot_bytes < INT_MAX)
 		  MPI_File_write_at(fh, offset, edgeCount.data(), tot_bytes, MPI_BYTE, &status);
@@ -282,12 +283,15 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 	  }
   }  
 
+  MPI_Barrier(MPI_COMM_WORLD);
+  
   // write the edge list next
-  tot_bytes = numEdges * sizeof(Edge);
+  uint64_t tot_bytes = numEdges * sizeof(Edge);
 
   GraphElem e_offset = 0;
   MPI_Exscan(&numEdges, &e_offset, 1, MPI_GRAPH_TYPE, MPI_SUM, MPI_COMM_WORLD);
 
+  // participate in writing only if a process has something to contribute
   if (tot_bytes > 0) {
 	  
 	  GraphElem offset = 2*sizeof(GraphElem) + (globalNumVertices+1)*sizeof(GraphElem) + e_offset*(sizeof(Edge));
@@ -317,7 +321,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   MPI_File_close(&fh);
 
   if (rank == 0) {
-	    std::cout << "Completed graph construction using " << nprocs << " processes (some idle)." << std::endl;      
-	    std::cout << "Graph #Vertices: " << globalNumVertices << ", #Edges: " << globalNumEdges << std::endl;
-    }
+	  std::cout << "Completed graph construction using " << nprocs << " processes (some idle)." << std::endl;      
+	  std::cout << "Graph #Vertices: " << globalNumVertices << ", #Edges: " << globalNumEdges << std::endl;
+  }
 } // loadParallelFileShards

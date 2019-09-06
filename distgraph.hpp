@@ -145,7 +145,7 @@ inline GraphElem DistGraph::getTotalNumEdges() const
 // print statistics about edge distribution
 inline void DistGraph::printStats()
 {
-    GraphElem sumdeg = 0, maxdeg = 0;
+    GraphElem sumdeg = 0, maxdeg = 0, mindeg = 0;
     int me, size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &me);
@@ -157,6 +157,7 @@ inline void DistGraph::printStats()
 
     MPI_Reduce(&lne, &sumdeg, 1, MPI_GRAPH_TYPE, MPI_SUM, 0, MPI_COMM_WORLD);
     MPI_Reduce(&lne, &maxdeg, 1, MPI_GRAPH_TYPE, MPI_MAX, 0, MPI_COMM_WORLD);
+    MPI_Reduce(&lne, &mindeg, 1, MPI_GRAPH_TYPE, MPI_MIN, 0, MPI_COMM_WORLD);
 
     GraphElem my_sq = lne*lne;
     GraphElem sum_sq = 0;
@@ -178,7 +179,8 @@ inline void DistGraph::printStats()
         std::cout << "Number of vertices: " << nv << std::endl;
         std::cout << "Number of edges: " << ne << std::endl;
         std::cout << "Maximum number of edges: " << maxdeg << std::endl;
-        std::cout << "Average number of edges: " << average << std::endl;
+        std::cout << "Minimum number of edges: " << mindeg << std::endl;
+        std::cout << "Mean number of edges: " << average << std::endl;
         std::cout << "Expected value of X^2: " << avg_sq << std::endl;
         std::cout << "Variance: " << var << std::endl;
         std::cout << "Standard deviation: " << stddev << std::endl;
