@@ -394,7 +394,7 @@ void generateInMemGraph(int rank, int nprocs, DistGraph *&dg, GraphElem nv, int 
 // create RGG and returns Graph
 // TODO FIXME use OpenMP wherever possible
 // use Euclidean distance as edge weight
-DistGraph* generateRGG(int rank, int nprocs, GraphWeight nv, GraphWeight rn, int randomEdgePercent)
+DistGraph* generateRGG(int rank, int nprocs, GraphElem nv, GraphWeight rn, int randomEdgePercent)
 {
     int up, down;
 
@@ -730,8 +730,8 @@ DistGraph* generateRGG(int rank, int nprocs, GraphWeight nv, GraphWeight rn, int
         for (GraphElem k = 0; k < pnrande; k++) {
 
             // randomly pick start/end vertex and target from my list
-            const GraphElem i = (GraphElem)IR(re, std::uniform_int_distribution<GraphElem>::param_type{0, (n- 1)});
-            const GraphElem g_j = (GraphElem)JR(re, std::uniform_int_distribution<GraphElem>::param_type{0, (nv- 1)});
+            const GraphElem i = (GraphElem)IR(re, std::uniform_int_distribution<GraphElem>::param_type{0, (n - 1)});
+            const GraphElem g_j = (GraphElem)JR(re, std::uniform_int_distribution<GraphElem>::param_type{0, (nv - 1)});
             const int target = dg->getOwner(g_j);
             const GraphElem j = dg->globalToLocal(g_j, target); // local
 
