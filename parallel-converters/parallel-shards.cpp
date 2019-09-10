@@ -195,7 +195,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 
   /// Part 2: Count number of edges and sort edges
   //#vertices << #edges
-  std::vector<GraphElem> edgeCount(globalNumVertices+1);
+  std::vector<GraphElem> edgeCount(globalNumVertices+1), edgeCountSum(globalNumVertices+1);
 
   // TODO FIXME use OpenMP atomic?  
   for (GraphElem i = 0; i < numEdges; i++) {
@@ -205,13 +205,13 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
  
   // we know that PE #0 is processing a file, reduce-sum
   // into the root process
-  MPI_Reduce(MPI_IN_PLACE, edgeCount.data(), globalNumVertices + 1, MPI_GRAPH_TYPE, 
+  MPI_Reduce(edgeCount.data(), edgeCountSum.data(), globalNumVertices + 1, MPI_GRAPH_TYPE, 
 		  MPI_SUM, 0, MPI_COMM_WORLD);
   
   // prefix sum to know where an edge starts 
   if (rank == 0) {
 	  std::vector<GraphElem> ecTmp(globalNumVertices + 1);
-	  std::partial_sum(edgeCount.begin(), edgeCount.end(), ecTmp.begin());
+	  std::partial_sum(edgeCountSum.begin(), edgeCountSum.end(), ecTmp.begin());
 	  edgeCount = ecTmp;
   }
 
@@ -324,4 +324,8 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 	  std::cout << "Completed graph construction using " << nprocs << " processes (some idle)." << std::endl;      
 	  std::cout << "Graph #Vertices: " << globalNumVertices << ", #Edges: " << globalNumEdges << std::endl;
   }
+
+  edgeCount.clear();
+  edgeCountSum.clear();
+  edgeList.clear();
 } // loadParallelFileShards
