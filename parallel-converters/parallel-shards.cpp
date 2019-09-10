@@ -79,7 +79,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   assert(fileEndIndex >= 0);
   assert(fileEndIndex >= fileStartIndex);
 
-  GraphElem maxVertex = -1, numEdges = 0, numVertices;
+  GraphElem numEdges = 0, numVertices;
   int file_open_error;
   MPI_File fh;
   MPI_Status status;
@@ -116,8 +116,11 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 
   MPI_Barrier(MPI_COMM_WORLD);
 
+  GraphElem v_hi, v_lo, maxVertex;
+
   // read the files only if I can
   std::map<GraphElem, std::string>::iterator mpit = fileProc.find(rank);
+  
   if (mpit != fileProc.end()) {
 	  // retrieve lo/hi range from file name string
 	  std::string fileName_full = (mpit->second).substr((mpit->second).find_last_of("/") + 1);
@@ -125,8 +128,8 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 	  std::string fileName_right = fileName_noext.substr(fileName_full.find("__") + 2);
 	  std::string fileName_left = fileName_noext.substr(0, fileName_full.find("__"));
 
-	  GraphElem v_lo = (std::stol(fileName_left) - 1)*shardCount;
-	  GraphElem v_hi = (std::stol(fileName_right) - 1)*shardCount;
+	  v_lo = (std::stol(fileName_left) - 1)*shardCount;
+	  v_hi = (std::stol(fileName_right) - 1)*shardCount;
 #if defined(DEBUG_PRINTF)
 	  std::cout << "File processing: " << fileName_full << "; Ranges: " << v_lo  << ", " << v_hi << std::endl;
 #endif
@@ -167,9 +170,9 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 		  edgeList.push_back({v1, v0, w});
 
 		  if (v0 > maxVertex)
-			  maxVertex = v0;
+                      maxVertex = v0;
 		  if (v1 > maxVertex)
-			  maxVertex = v1;
+                      maxVertex = v1;
 
 		  numEdges++;
 	  }
@@ -188,31 +191,35 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   else
 	numVertices = maxVertex;
 
-  // get total #vertices to construct edgeCount
+  // numEdges/numVertices to be written by process 0
   GraphElem globalNumVertices, globalNumEdges;
-  MPI_Allreduce(&numVertices, &globalNumVertices, 1, MPI_GRAPH_TYPE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Reduce(&numVertices, &globalNumVertices, 1, MPI_GRAPH_TYPE, MPI_MAX, 0, MPI_COMM_WORLD);
   MPI_Reduce(&numEdges, &globalNumEdges, 1, MPI_GRAPH_TYPE, MPI_SUM, 0, MPI_COMM_WORLD);
 
-  /// Part 2: Count number of edges and sort edges
+  /// Part 2: Count number of edges and sort edges locally
   //#vertices << #edges
-  std::vector<GraphElem> edgeCount(globalNumVertices+1), edgeCountSum(globalNumVertices+1);
+  std::vector<GraphElem> edgeCount(globalNumVertices+1), edgeCountSum;
+  if (rank == 0)
+      edgeCountSum.resize(globalNumVertices);
 
-  // TODO FIXME use OpenMP atomic?  
+#pragma omp parallel for default(shared) schedule(dynamic)
   for (GraphElem i = 0; i < numEdges; i++) {
+#pragma omp atomic update
 	edgeCount[edgeList[i].i_+1]++;
+#pragma omp atomic update
 	edgeCount[edgeList[i].j_+1]++;
   }
  
   // we know that PE #0 is processing a file, reduce-sum
   // into the root process
-  MPI_Reduce(edgeCount.data(), edgeCountSum.data(), globalNumVertices + 1, MPI_GRAPH_TYPE, 
-		  MPI_SUM, 0, MPI_COMM_WORLD);
+  MPI_Reduce(edgeCount.data(), edgeCountSum.data(), globalNumVertices + 1, 
+          MPI_GRAPH_TYPE, MPI_SUM, 0, MPI_COMM_WORLD);
   
   // prefix sum to know where an edge starts 
   if (rank == 0) {
-	  std::vector<GraphElem> ecTmp(globalNumVertices + 1);
-	  std::partial_sum(edgeCountSum.begin(), edgeCountSum.end(), ecTmp.begin());
-	  edgeCount = ecTmp;
+      std::vector<GraphElem> ecTmp(globalNumVertices + 1);
+      std::partial_sum(edgeCountSum.begin(), edgeCountSum.end(), ecTmp.begin());
+      edgeCountSum = ecTmp;
   }
 
   // local sorting of edge list
@@ -252,7 +259,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
       MPI_Abort(-99, MPI_COMM_WORLD);
   }
 
-  // write the number of vertices/edges first
+  // process 0 writes the #vertices/edges first, followed by edgeCount
   if (rank == 0) {
 	  MPI_File_write(fh, &globalNumVertices, sizeof(GraphElem), MPI_BYTE, &status);
 	  MPI_File_write(fh, &globalNumEdges, sizeof(GraphElem), MPI_BYTE, &status);
