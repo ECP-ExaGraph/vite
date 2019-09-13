@@ -202,11 +202,8 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   if (rank == 0)
       edgeCountSum.resize(globalNumVertices);
 
-#pragma omp parallel for default(shared) schedule(dynamic)
   for (GraphElem i = 0; i < numEdges; i++) {
-#pragma omp atomic update
 	edgeCount[edgeList[i].i_+1]++;
-#pragma omp atomic update
 	edgeCount[edgeList[i].j_+1]++;
   }
  
