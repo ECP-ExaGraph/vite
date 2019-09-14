@@ -200,7 +200,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   //#vertices << #edges
   std::vector<GraphElem> edgeCount(globalNumVertices+1), edgeCountSum;
   if (rank == 0)
-      edgeCountSum.resize(globalNumVertices);
+      edgeCountSum.resize(globalNumVertices+1);
 
   for (GraphElem i = 0; i < numEdges; i++) {
 	edgeCount[edgeList[i].i_+1]++;
