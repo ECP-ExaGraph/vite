@@ -216,7 +216,9 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   if (rank == 0) {
       std::vector<GraphElem> ecTmp(globalNumVertices + 1);
       std::partial_sum(edgeCountSum.begin(), edgeCountSum.end(), ecTmp.begin());
-      edgeCountSum = ecTmp;
+      std::copy(ecTmp.begin(), ecTmp.end(), edgeCountSum.begin());
+      //edgeCountSum = ecTmp;
+      ecTmp.clear();
   }
 
   // local sorting of edge list
@@ -268,10 +270,10 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 	  MPI_Offset offset = 2*sizeof(GraphElem);
 
 	  if (tot_bytes < INT_MAX)
-		  MPI_File_write_at(fh, offset, edgeCount.data(), tot_bytes, MPI_BYTE, &status);
+		  MPI_File_write_at(fh, offset, edgeCountSum.data(), tot_bytes, MPI_BYTE, &status);
 	  else {
 		  int chunk_bytes=INT_MAX;
-		  uint8_t *curr_pointer = (uint8_t*) edgeCount.data();
+		  uint8_t *curr_pointer = (uint8_t*) edgeCountSum.data();
 		  uint64_t transf_bytes=0;
 
 		  while (transf_bytes<tot_bytes)
