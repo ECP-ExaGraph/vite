@@ -80,7 +80,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   assert(fileEndIndex >= 0);
   assert(fileEndIndex >= fileStartIndex);
 
-  GraphElem numEdges = 0, numVertices;
+  GraphElem numEdges = 0, numVertices = 0;
   int file_open_error;
   MPI_File fh;
   MPI_Status status;
@@ -149,14 +149,14 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 		  std::istringstream iss(line);
 
 		  // read from current shard 
-		  if (wtype == ORG_WEIGHT)
-			  iss >> v0 >> ch >> v1 >> ch >> info >> ch >> w;
-		  if (wtype == ABS_WEIGHT) {
-			  iss >> v0 >> ch >> v1 >> ch >> info >> ch >> w;
-			  w = std::fabs(w);
-		  }
-		  else
-			  iss >> v0 >> ch >> v1 >> ch >> info;
+                  if (wtype == ORG_WEIGHT)
+                      iss >> v0 >> ch >> v1 >> ch >> info >> ch >> w;
+                  if (wtype == ABS_WEIGHT) {
+                      iss >> v0 >> ch >> v1 >> ch >> info >> ch >> w;
+                      w = std::fabs(w);
+                  }
+                  else
+                      iss >> v0 >> ch >> v1 >> ch >> info;
 
 		  if (indexOneBased) {
 			  v0--; 
@@ -194,8 +194,8 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 
   // numEdges/numVertices to be written by process 0
   GraphElem globalNumVertices, globalNumEdges;
-  MPI_Reduce(&numVertices, &globalNumVertices, 1, MPI_GRAPH_TYPE, MPI_MAX, 0, MPI_COMM_WORLD);
-  MPI_Reduce(&numEdges, &globalNumEdges, 1, MPI_GRAPH_TYPE, MPI_SUM, 0, MPI_COMM_WORLD);
+  MPI_Allreduce(&numVertices, &globalNumVertices, 1, MPI_GRAPH_TYPE, MPI_MAX, MPI_COMM_WORLD);
+  MPI_Allreduce(&numEdges, &globalNumEdges, 1, MPI_GRAPH_TYPE, MPI_SUM, MPI_COMM_WORLD);
 
   if (rank == 0)
       std::cout << "Graph #nvertices: " << globalNumVertices << ", #edges: " << globalNumEdges << std::endl;
