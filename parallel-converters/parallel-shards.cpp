@@ -117,7 +117,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 
   MPI_Barrier(MPI_COMM_WORLD);
 
-  GraphElem v_hi = -1, v_lo = -1, maxVertex;
+  GraphElem v_hi = -1, v_lo = -1, maxVertex = -1;
 
   // read the files only if I can
   std::map<GraphElem, std::string>::iterator mpit = fileProc.find(rank);
