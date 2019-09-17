@@ -197,6 +197,9 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   MPI_Reduce(&numVertices, &globalNumVertices, 1, MPI_GRAPH_TYPE, MPI_MAX, 0, MPI_COMM_WORLD);
   MPI_Reduce(&numEdges, &globalNumEdges, 1, MPI_GRAPH_TYPE, MPI_SUM, 0, MPI_COMM_WORLD);
 
+  if (rank == 0)
+      std::cout << "Graph #nvertices: " << globalNumVertices << ", #edges: " << globalNumEdges << std::endl;
+
   /// Part 2: Count number of edges and sort edges locally
   // assumed vertex-based distribution to build edgeCount
   std::vector<GraphElem> parts(nprocs+1); 
@@ -247,6 +250,11 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
       }
   }
 
+  if (rank == 0)
+      std::cout << "Local counting of edges done, prepared outgoing vertex list with local counts." << std::endl;
+
+  MPI_Barrier(MPI_COMM_WORLD);
+
   // exchange count information
   std::vector<int> ssize(nprocs), rsize(nprocs), sdispls(nprocs), rdispls(nprocs);
 
@@ -287,12 +295,19 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   MPI_Alltoallv(sredata.data(), ssize.data(), sdispls.data(), 
           MPI_GRAPH_TYPE, rredata.data(), rsize.data(), rdispls.data(), 
           MPI_GRAPH_TYPE, MPI_COMM_WORLD);
-  
+   
+  if (rank == 0)
+      std::cout << "Exchanged vertex and count information." << std::endl;
+
+ 
   // perform counting for remote edge tails 
   // obtained from alltoallv
   for (GraphElem i = 0; i < rpos; i+=2) {
       edgeCount[rredata[i] - parts[rank]] += rredata[i+1]; 
   }
+  
+  if (rank == 0)
+      std::cout << "Updated vertex counts, to begin prefix sum for building CSR." << std::endl;
 
   sredata.clear();
   rredata.clear();
@@ -318,6 +333,9 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
       for (GraphElem i = 0; i < alocalNumVertices; i++)
           edgeCount[i] += psum;
   }
+  
+  if (rank == 0)
+      std::cout << "Completed distributed prefix sum for building CSR." << std::endl;
 
   MPI_Barrier(MPI_COMM_WORLD);
   
@@ -357,11 +375,12 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
       std::cout<< " Error opening output file! " << std::endl;
       MPI_Abort(-99, MPI_COMM_WORLD);
   }
-
+  
   // process 0 writes the #vertices/edges first, followed by edgeCount
   if (rank == 0) {
-	  MPI_File_write(fh, &globalNumVertices, sizeof(GraphElem), MPI_BYTE, &status);
-	  MPI_File_write(fh, &globalNumEdges, sizeof(GraphElem), MPI_BYTE, &status);
+      std::cout << "Processing complete, about to write the binary file." << std::endl;
+      MPI_File_write(fh, &globalNumVertices, sizeof(GraphElem), MPI_BYTE, &status);
+      MPI_File_write(fh, &globalNumEdges, sizeof(GraphElem), MPI_BYTE, &status);
   }
   
   MPI_Barrier(MPI_COMM_WORLD);
@@ -430,10 +449,8 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 
   MPI_File_close(&fh);
 
-  if (rank == 0) {
-	  std::cout << "Completed graph construction using " << nprocs << " processes (some idle)." << std::endl;      
-	  std::cout << "Graph #Vertices: " << globalNumVertices << ", #Edges: " << globalNumEdges << std::endl;
-  }
+  if (rank == 0)
+      std::cout << "Completed writing the binary file using " << nprocs << " processes." << std::endl;      
 
   edgeCount.clear();
   edgeList.clear();
