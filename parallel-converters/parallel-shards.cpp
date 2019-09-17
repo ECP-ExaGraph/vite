@@ -55,6 +55,7 @@
 #include <vector>
 #include <utility>
 #include <map>
+#include <unordered_map>
 #include <climits>
 
 #include "parallel-shards.hpp"
@@ -207,7 +208,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   GraphElem alocalNumVertices = (((globalNumVertices+1)*(rank + 1)) / nprocs) - (((globalNumVertices+1)*rank) / nprocs); 
 
   std::vector<GraphElem> edgeCount(alocalNumVertices);
-  std::vector<std::vector<GraphElem>> outVertices(nprocs);
+  std::vector<std::unordered_map<GraphElem, int>> outVertices(nprocs);
   
   // check vertex end points and perform local counting
   // fill outgoing buffer for ghosts
@@ -222,8 +223,12 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 
       if (owner == rank)
           edgeCount[vertex - parts[rank]]++; // global to local index translation
-      else
-          outVertices[owner].push_back(vertex);
+      else {
+          if (outVertices[owner].find(vertex) != outVertices[owner].end())
+              outVertices[owner][vertex] += 1;
+          else
+              outVertices[owner].insert(std::pair<GraphElem, int>(vertex, 1));
+      }
 
       // repeat for another end point
       vertex = edgeList[i].j_+1;
@@ -234,16 +239,22 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 
       if (owner == rank)
           edgeCount[vertex - parts[rank]]++; // global to local index translation
-      else
-          outVertices[owner].push_back(vertex);
+      else {
+          if (outVertices[owner].find(vertex) != outVertices[owner].end())
+              outVertices[owner][vertex] += 1;
+          else
+              outVertices[owner].insert(std::pair<GraphElem, int>(vertex, 1));
+      }
   }
 
   // exchange count information
   std::vector<int> ssize(nprocs), rsize(nprocs), sdispls(nprocs), rdispls(nprocs);
 
+  // outVertices contains outgoing {edges,frequency} information
+  // copy from map to linear buffer, *2 because we store both key and val
   int spos = 0;
   for (int p = 0; p < nprocs; p++) {
-      ssize[p] = (int)outVertices[p].size();
+      ssize[p] = (int)(outVertices[p].size() * 2);
       sdispls[p] = spos;
       spos += ssize[p];
   }
@@ -251,10 +262,17 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   std::vector<GraphElem> sredata(spos);
   spos = 0;
   for (int p = 0; p < nprocs; p++) {
-      std::memcpy(&sredata[spos], outVertices[p].data(), sizeof(GraphElem)*outVertices[p].size());
-      spos += outVertices[p].size();
+      int idx = 0;
+      for (std::unordered_map<GraphElem, int>::iterator it = outVertices[p].begin(); it != outVertices[p].end(); ++it) {
+          sredata[spos+idx] = it->first;
+          sredata[spos+idx+1] = it->second;
+          idx += 2;
+      }
+      spos += (outVertices[p].size() * 2);
   }
 
+  for (int p = 0; p < nprocs; p++)
+      outVertices[p].clear();
   outVertices.clear();
   
   MPI_Alltoall(ssize.data(), 1, MPI_INT, rsize.data(), 1, MPI_INT, MPI_COMM_WORLD);
@@ -272,8 +290,8 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   
   // perform counting for remote edge tails 
   // obtained from alltoallv
-  for (GraphElem i = 0; i < rpos; i++) {
-      edgeCount[rredata[i] - parts[rank]]++; // global to local index translation
+  for (GraphElem i = 0; i < rpos; i+=2) {
+      edgeCount[rredata[i] - parts[rank]] += rredata[i+1]; 
   }
 
   sredata.clear();
