@@ -186,16 +186,15 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   MPI_Barrier(MPI_COMM_WORLD);
 
   fileProc.clear();
-  
-  if (!indexOneBased)
-	numVertices = maxVertex + 1;
-  else
-	numVertices = maxVertex;
+
+  numVertices = maxVertex;
 
   // numEdges/numVertices to be written by process 0
-  GraphElem globalNumVertices, globalNumEdges;
-  MPI_Allreduce(&numVertices, &globalNumVertices, 1, MPI_GRAPH_TYPE, MPI_MAX, MPI_COMM_WORLD);
+  GraphElem globalNumVertices = 0, globalNumEdges = 0;
   MPI_Allreduce(&numEdges, &globalNumEdges, 1, MPI_GRAPH_TYPE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&numVertices, &globalNumVertices, 1, MPI_GRAPH_TYPE, MPI_MAX, MPI_COMM_WORLD);
+  if (!indexOneBased)
+	  globalNumVertices += 1;
 
   if (rank == 0)
       std::cout << "Graph #nvertices: " << globalNumVertices << ", #edges: " << globalNumEdges << std::endl;
