@@ -129,8 +129,8 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 	  std::string fileName_right = fileName_noext.substr(fileName_full.find("__") + 2);
 	  std::string fileName_left = fileName_noext.substr(0, fileName_full.find("__"));
 
-	  v_lo = (std::stol(fileName_left) - 1)*shardCount;
-	  v_hi = (std::stol(fileName_right) - 1)*shardCount;
+	  v_lo = (GraphElem)(std::stoi(fileName_left) - 1)*shardCount;
+	  v_hi = (GraphElem)(std::stoi(fileName_right) - 1)*shardCount;
 #if defined(DEBUG_PRINTF)
 	  std::cout << "File processing: " << fileName_full << "; Ranges: " << v_lo  << ", " << v_hi << std::endl;
 #endif
