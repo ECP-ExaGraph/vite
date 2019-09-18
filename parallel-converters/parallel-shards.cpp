@@ -80,7 +80,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   assert(fileEndIndex >= 0);
   assert(fileEndIndex >= fileStartIndex);
 
-  GraphElem numEdges = 0, numVertices = 0;
+  GraphElem numEdges = 0, numVertices = -1;
   int file_open_error;
   MPI_File fh;
   MPI_Status status;
@@ -117,7 +117,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 
   MPI_Barrier(MPI_COMM_WORLD);
 
-  GraphElem v_hi = -1, v_lo = -1, maxVertex = -1;
+  GraphElem v_hi = -1, v_lo = -1;
 
   // read the files only if I can
   std::map<GraphElem, std::string>::iterator mpit = fileProc.find(rank);
@@ -170,10 +170,10 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 		  edgeList.push_back({v0, v1, w});
 		  edgeList.push_back({v1, v0, w});
 
-		  if (v0 > maxVertex)
-                      maxVertex = v0;
-		  if (v1 > maxVertex)
-                      maxVertex = v1;
+		  if (v0 > numVertices)
+                      numVertices = v0;
+		  if (v1 > numVertices)
+                      numVertices = v1;
 
 		  numEdges++;
 	  }
@@ -187,12 +187,12 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 
   fileProc.clear();
 
-  numVertices = maxVertex;
-
   // numEdges/numVertices to be written by process 0
   GraphElem globalNumVertices = 0, globalNumEdges = 0;
+  
   MPI_Allreduce(&numEdges, &globalNumEdges, 1, MPI_GRAPH_TYPE, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&numVertices, &globalNumVertices, 1, MPI_GRAPH_TYPE, MPI_MAX, MPI_COMM_WORLD);
+  
   if (!indexOneBased)
 	  globalNumVertices += 1;
 
