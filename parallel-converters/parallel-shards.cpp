@@ -140,12 +140,13 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 
 	  std::string line;
 
-	  while(std::getline(ifs, line)) {
+	  while(!ifs.eof()) {
 
 		  GraphElem v0, v1, info;
 		  GraphWeight w;
 		  char ch;
 
+		  std::getline(ifs, line);
 		  std::istringstream iss(line);
 
 		  // read from current shard 
@@ -411,18 +412,18 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
       } 
   }
 
-  MPI_Barrier(MPI_COMM_WORLD);
-  
   // write the edge list next
   tot_bytes = numEdges * sizeof(Edge);
 
   GraphElem e_offset = 0;
   MPI_Exscan(&numEdges, &e_offset, 1, MPI_GRAPH_TYPE, MPI_SUM, MPI_COMM_WORLD);
 
+  MPI_Barrier(MPI_COMM_WORLD);
+  
   // participate in writing only if a process has something to contribute
   if (tot_bytes > 0) {
 	  
-	  GraphElem offset = 2*sizeof(GraphElem) + (globalNumVertices+1)*sizeof(GraphElem) + e_offset*(sizeof(Edge));
+	  offset = 2*sizeof(GraphElem) + (globalNumVertices+1)*sizeof(GraphElem) + e_offset*(sizeof(Edge));
 	  
 	  if (tot_bytes<INT_MAX)
 		  MPI_File_write_at(fh, offset, edgeList.data(), tot_bytes, MPI_BYTE, &status);
