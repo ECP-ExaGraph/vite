@@ -186,6 +186,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   // idle processes wait at the barrier
   MPI_Barrier(MPI_COMM_WORLD);
 
+  const int elprocs = fileProc.size();
   fileProc.clear();
 
   // numEdges/numVertices to be written by process 0
@@ -412,6 +413,9 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
       } 
   }
 
+  if (rank == 0)
+      std::cout << "Beginning to write the second part of the binary file (edges) using " << elprocs << " processes." << std::endl;      
+
   // write the edge list next
   tot_bytes = numEdges * sizeof(Edge);
 
@@ -450,7 +454,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   MPI_File_close(&fh);
 
   if (rank == 0)
-      std::cout << "Completed writing the binary file using " << nprocs << " processes." << std::endl;      
+      std::cout << "Completed writing the binary file: " << fileOutPath << std::endl;      
 
   edgeCount.clear();
   edgeList.clear();
