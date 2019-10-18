@@ -175,13 +175,13 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
                       numVertices = v0;
 		  if (v1 > numVertices)
                       numVertices = v1;
-
-		  numEdges++;
 	  }
 
 	  // close current shard
 	  ifs.close();
   }
+
+  numEdges = edgeList.size();
 
   // idle processes wait at the barrier
   MPI_Barrier(MPI_COMM_WORLD);
