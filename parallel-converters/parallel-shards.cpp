@@ -83,7 +83,6 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   GraphElem numEdges = 0, numVertices = -1;
   int file_open_error;
   MPI_File fh;
-  MPI_Status status;
 
   /// Part 1: Read the file shards into edge list  
   
@@ -359,18 +358,8 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   MPI_Barrier(MPI_COMM_WORLD);
 
   /// Part 3: Dump the data to a binary file   
-  // number of aggregates to improve MPI IO
-  MPI_Info info;
-  MPI_Info_create(&info);
-  if (naggr >= nprocs)
-      naggr = 1;
-  std::stringstream tmp_str;
-  tmp_str << naggr;
-  std::string str = tmp_str.str();
-  MPI_Info_set(info, "cb_nodes", str.c_str());
-
-  file_open_error = MPI_File_open(MPI_COMM_WORLD, fileOutPath.c_str(), MPI_MODE_CREATE | MPI_MODE_WRONLY, info, &fh); 
-  MPI_Info_free(&info);
+  file_open_error = MPI_File_open(MPI_COMM_WORLD, fileOutPath.c_str(), 
+          MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL, &fh); 
 
   if (file_open_error != MPI_SUCCESS) {
       std::cout<< " Error opening output file! " << std::endl;
@@ -380,8 +369,8 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   // process 0 writes the #vertices/edges first, followed by edgeCount
   if (rank == 0) {
       std::cout << "Processing complete, about to write the binary file." << std::endl;
-      MPI_File_write(fh, &globalNumVertices, sizeof(GraphElem), MPI_BYTE, &status);
-      MPI_File_write(fh, &globalNumEdges, sizeof(GraphElem), MPI_BYTE, &status);
+      MPI_File_write_at(fh, 0, &globalNumVertices, sizeof(GraphElem), MPI_BYTE, MPI_STATUS_IGNORE);
+      MPI_File_write_at(fh, sizeof(GraphElem), &globalNumEdges, sizeof(GraphElem), MPI_BYTE, MPI_STATUS_IGNORE);
   }
   
   MPI_Barrier(MPI_COMM_WORLD);
@@ -395,7 +384,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   MPI_Offset offset = 2*sizeof(GraphElem) + ec_offset*sizeof(GraphElem);
 
   if (tot_bytes < INT_MAX)
-      MPI_File_write_at(fh, offset, edgeCount.data(), tot_bytes, MPI_BYTE, &status);
+      MPI_File_write_at(fh, offset, edgeCount.data(), tot_bytes, MPI_BYTE, MPI_STATUS_IGNORE);
   else {
       int chunk_bytes=INT_MAX;
       uint8_t *curr_pointer = (uint8_t*) edgeCount.data();
@@ -403,7 +392,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 
       while (transf_bytes<tot_bytes)
       {
-          MPI_File_write_at(fh, offset, curr_pointer, chunk_bytes, MPI_BYTE, &status);
+          MPI_File_write_at(fh, offset, curr_pointer, chunk_bytes, MPI_BYTE, MPI_STATUS_IGNORE);
           transf_bytes+=chunk_bytes;
           offset+=chunk_bytes;
           curr_pointer+=chunk_bytes;
@@ -430,7 +419,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 	  offset = 2*sizeof(GraphElem) + (globalNumVertices+1)*sizeof(GraphElem) + e_offset*(sizeof(Edge));
 	  
 	  if (tot_bytes<INT_MAX)
-		  MPI_File_write_at(fh, offset, edgeList.data(), tot_bytes, MPI_BYTE, &status);
+		  MPI_File_write_at(fh, offset, edgeList.data(), tot_bytes, MPI_BYTE, MPI_STATUS_IGNORE);
 	  else {
 		  int chunk_bytes=INT_MAX;
 		  uint8_t *curr_pointer = (uint8_t*)edgeList.data();
@@ -438,7 +427,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 
 		  while (transf_bytes<tot_bytes)
 		  {
-			  MPI_File_write_at(fh, offset, curr_pointer, chunk_bytes, MPI_BYTE, &status);
+			  MPI_File_write_at(fh, offset, curr_pointer, chunk_bytes, MPI_BYTE, MPI_STATUS_IGNORE);
 			  transf_bytes+=chunk_bytes;
 			  offset+=chunk_bytes;
 			  curr_pointer+=chunk_bytes;
