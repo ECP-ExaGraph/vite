@@ -65,7 +65,7 @@ void createEdgeMPIType()
 
   int blens[] = { 1, 1, 1 };
   MPI_Aint displ[] = { s - begin, t - begin, w - begin };
-  MPI_Datatype types[] = { MPI_GRAPH_TYPE, MPI_GRAPH_TYPE, MPI_GRAPH_TYPE };
+  MPI_Datatype types[] = { MPI_GRAPH_TYPE, MPI_GRAPH_TYPE, MPI_WEIGHT_TYPE };
 
   MPI_Type_create_struct(3, blens, displ, types, &edgeType);
   MPI_Type_commit(&edgeType);

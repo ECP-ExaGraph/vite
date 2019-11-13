@@ -168,7 +168,6 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 		  v1 += v_hi;
 
 		  edgeList.push_back({v0, v1, w});
-		  edgeList.push_back({v1, v0, w});
 
 		  if (v0 > numVertices)
                       numVertices = v0;
@@ -180,12 +179,16 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 	  ifs.close();
   }
 
-  numEdges = edgeList.size();
-
+  numEdges = edgeList.size()*2;
+  
   // idle processes wait at the barrier
   MPI_Barrier(MPI_COMM_WORLD);
 
   const int elprocs = fileProc.size();
+  
+  if (rank == 0)
+      std::cout << "Read the files using " << elprocs << " processes." << std::endl;      
+
   fileProc.clear();
 
   // numEdges/numVertices to be written by process 0
@@ -195,93 +198,95 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   MPI_Allreduce(&numVertices, &globalNumVertices, 1, MPI_GRAPH_TYPE, MPI_MAX, MPI_COMM_WORLD);
   
   if (!indexOneBased)
-	  globalNumVertices += 1;
+      globalNumVertices += 1;
 
   if (rank == 0)
       std::cout << "Graph #nvertices: " << globalNumVertices << ", #edges: " << globalNumEdges << std::endl;
 
-  /// Part 2: Count number of edges and sort edges locally
-  // assumed vertex-based distribution to build edgeCount
+  /// Part 2: Assuming a vertex-based distribution, distribute edges and build edgeCount
   std::vector<GraphElem> parts(nprocs+1); 
   parts[0] = 0;
 
   for (GraphElem i = 1; i < nprocs+1; i++)
-      parts[i] = (((globalNumVertices+1) * i) / nprocs); 
+      parts[i] = ((globalNumVertices * i) / nprocs); 
   
-  GraphElem alocalNumVertices = (((globalNumVertices+1)*(rank + 1)) / nprocs) - (((globalNumVertices+1)*rank) / nprocs); 
+  GraphElem localNumVertices = ((globalNumVertices*(rank + 1)) / nprocs) - ((globalNumVertices*rank) / nprocs); 
 
-  std::vector<GraphElem> edgeCount(alocalNumVertices);
-  std::vector<std::unordered_map<GraphElem, int>> outVertices(nprocs);
+  std::vector<GraphElem> edgeCount(globalNumVertices+1);
+  std::vector<std::vector<GraphElemTuple>> outEdges(nprocs);
   
-  // check vertex end points and perform local counting
-  // fill outgoing buffer for ghosts
+  // build MPI edge tuple datatype
+  GraphElemTuple et;
+  MPI_Datatype ettype;
+
+  MPI_Aint begin, s, t, w;
+  MPI_Get_address(&et, &begin);
+  MPI_Get_address(&et.i_, &s);
+  MPI_Get_address(&et.j_, &t);
+  MPI_Get_address(&et.w_, &w);
+
+  int blens[] = { 1, 1, 1 };
+  MPI_Aint displ[] = { s - begin, t - begin, w - begin };
+  MPI_Datatype types[] = { MPI_GRAPH_TYPE, MPI_GRAPH_TYPE, MPI_WEIGHT_TYPE };
+
+  MPI_Type_create_struct(3, blens, displ, types, &ettype);
+  MPI_Type_commit(&ettype);
+  
+  // Spread edge lists uniformly across processes
+  // and perform local edge counting (assuming a 
+  // vertex-based distribution)
   std::vector<GraphElem>::iterator iter; 
   int owner;
-  for (GraphElem i = 0; i < numEdges; i++) {
-      GraphElem vertex = edgeList[i].i_+1;
+  
+  for (GraphElem i = 0; i < (numEdges/2); i++) {
+      GraphElem vertex = edgeList[i].i_;
 
       // get owner
       iter = std::upper_bound(parts.begin(), parts.end(), vertex);
       owner = (iter - parts.begin() - 1);
-
-      if (owner == rank)
-          edgeCount[vertex - parts[rank]]++; // global to local index translation
-      else {
-          if (outVertices[owner].find(vertex) != outVertices[owner].end())
-              outVertices[owner][vertex] += 1;
-          else
-              outVertices[owner].insert(std::pair<GraphElem, int>(vertex, 1));
-      }
+      edgeCount[vertex+1]++; 
+      
+      outEdges[owner].emplace_back(edgeList[i]);
 
       // repeat for another end point
-      vertex = edgeList[i].j_+1;
+      vertex = edgeList[i].j_;
 
       // get owner
       iter = std::upper_bound(parts.begin(), parts.end(), vertex);
       owner = (iter - parts.begin() - 1);
+      edgeCount[vertex+1]++; 
 
-      if (owner == rank)
-          edgeCount[vertex - parts[rank]]++; // global to local index translation
-      else {
-          if (outVertices[owner].find(vertex) != outVertices[owner].end())
-              outVertices[owner][vertex] += 1;
-          else
-              outVertices[owner].insert(std::pair<GraphElem, int>(vertex, 1));
-      }
+      outEdges[owner].emplace_back(edgeList[i].j_, edgeList[i].i_, edgeList[i].w_);
   }
 
   if (rank == 0)
-      std::cout << "Local counting of edges done, prepared outgoing vertex list with local counts." << std::endl;
+      std::cout << "Filled outgoing (undirected) edge lists." << std::endl;
+
+  edgeList.clear();
 
   MPI_Barrier(MPI_COMM_WORLD);
 
   // exchange count information
   std::vector<int> ssize(nprocs), rsize(nprocs), sdispls(nprocs), rdispls(nprocs);
 
-  // outVertices contains outgoing {edges,frequency} information
-  // copy from map to linear buffer, *2 because we store both key and val
+  // outEdges contains outgoing {edges,weight} information
   int spos = 0;
   for (int p = 0; p < nprocs; p++) {
-      ssize[p] = (int)(outVertices[p].size() * 2);
+      ssize[p] = (int)outEdges[p].size();
       sdispls[p] = spos;
       spos += ssize[p];
   }
 
-  std::vector<GraphElem> sredata(spos);
+  std::vector<GraphElemTuple> sredata(spos);
   spos = 0;
   for (int p = 0; p < nprocs; p++) {
-      int idx = 0;
-      for (std::unordered_map<GraphElem, int>::iterator it = outVertices[p].begin(); it != outVertices[p].end(); ++it) {
-          sredata[spos+idx] = it->first;
-          sredata[spos+idx+1] = it->second;
-          idx += 2;
-      }
-      spos += (outVertices[p].size() * 2);
+      std::memcpy(&sredata[spos], outEdges[p].data(), sizeof(GraphElemTuple)*outEdges[p].size());
+      spos += outEdges[p].size();
   }
 
   for (int p = 0; p < nprocs; p++)
-      outVertices[p].clear();
-  outVertices.clear();
+      outEdges[p].clear();
+  outEdges.clear();
   
   MPI_Alltoall(ssize.data(), 1, MPI_INT, rsize.data(), 1, MPI_INT, MPI_COMM_WORLD);
   
@@ -291,63 +296,37 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
       rpos += rsize[p];
   }
 
-  std::vector<GraphElem> rredata(rpos);
+  std::vector<GraphElemTuple> rredata(rpos);
   MPI_Alltoallv(sredata.data(), ssize.data(), sdispls.data(), 
-          MPI_GRAPH_TYPE, rredata.data(), rsize.data(), rdispls.data(), 
-          MPI_GRAPH_TYPE, MPI_COMM_WORLD);
+          ettype, rredata.data(), rsize.data(), rdispls.data(), 
+          ettype, MPI_COMM_WORLD);
+
+  // updated #edges
+  numEdges = rredata.size();
+
+  // reduction on edge counts
+  MPI_Reduce(MPI_IN_PLACE, edgeCount.data(), globalNumVertices, 
+          MPI_GRAPH_TYPE, MPI_SUM, 0, MPI_COMM_WORLD);
    
-  if (rank == 0)
-      std::cout << "Exchanged vertex and count information." << std::endl;
+  if (rank == 0) {
+      std::cout << "Redistributed edges and performed reduction on edge counts." << std::endl;
 
- 
-  // perform counting for remote edge tails 
-  // obtained from alltoallv
-  for (GraphElem i = 0; i < rpos; i+=2) {
-      edgeCount[rredata[i] - parts[rank]] += rredata[i+1]; 
+      // local prefix sum
+      for (GraphElem i = 1; i < globalNumVertices; i++)
+          edgeCount[i] += edgeCount[i-1];
   }
-  
-  if (rank == 0)
-      std::cout << "Updated vertex counts, to begin prefix sum for building CSR." << std::endl;
 
-  sredata.clear();
-  rredata.clear();
-  ssize.clear();
-  rsize.clear();
-  sdispls.clear();
-  rdispls.clear();
-  parts.clear();
-
-  // local prefix sum
-  std::vector<GraphElem> ecTmp(alocalNumVertices);
-  std::partial_sum(edgeCount.begin(), edgeCount.end(), ecTmp.begin());
-  edgeCount = ecTmp;
-  ecTmp.clear();
-  
   MPI_Barrier(MPI_COMM_WORLD);
 
-  // distributed prefix sum of coefficient
-  GraphElem psum = edgeCount.back();
-  MPI_Exscan(MPI_IN_PLACE, &psum, 1, MPI_GRAPH_TYPE, MPI_SUM, MPI_COMM_WORLD);
-
-  if (rank != 0) {
-      for (GraphElem i = 0; i < alocalNumVertices; i++)
-          edgeCount[i] += psum;
-  }
-  
-  if (rank == 0)
-      std::cout << "Completed distributed prefix sum for building CSR." << std::endl;
-
-  MPI_Barrier(MPI_COMM_WORLD);
-  
   // local sorting of edge list
   auto ecmp = [] (GraphElemTuple const& e0, GraphElemTuple const& e1)
   { return ((e0.i_ < e1.i_) || ((e0.i_ == e1.i_) && (e0.j_ < e1.j_))); };
 
-  if (!std::is_sorted(edgeList.begin(), edgeList.end(), ecmp)) {
+  if (!std::is_sorted(rredata.begin(), rredata.end(), ecmp)) {
 #if defined(DEBUG_PRINTF)
 	  std::cout << "Edge list is not sorted" << std::endl;
 #endif
-	  std::sort(edgeList.begin(), edgeList.end(), ecmp);
+	  std::sort(rredata.begin(), rredata.end(), ecmp);
   }
   else {
 #if defined(DEBUG_PRINTF)
@@ -367,27 +346,66 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   }
   
   // process 0 writes the #vertices/edges first, followed by edgeCount
+  
+  uint64_t tot_bytes;
+  MPI_Offset offset;
+
   if (rank == 0) {
       std::cout << "Processing complete, about to write the binary file." << std::endl;
       MPI_File_write_at(fh, 0, &globalNumVertices, sizeof(GraphElem), MPI_BYTE, MPI_STATUS_IGNORE);
       MPI_File_write_at(fh, sizeof(GraphElem), &globalNumEdges, sizeof(GraphElem), MPI_BYTE, MPI_STATUS_IGNORE);
+
+      // write the edge prefix counts first (required for CSR 
+      // construction during reading) 
+      tot_bytes = globalNumVertices * sizeof(GraphElem);
+      offset = 2*sizeof(GraphElem);
+
+      if (tot_bytes < INT_MAX)
+          MPI_File_write_at(fh, offset, edgeCount.data(), tot_bytes, MPI_BYTE, MPI_STATUS_IGNORE);
+      else {
+          int chunk_bytes=INT_MAX;
+          uint8_t *curr_pointer = (uint8_t*) edgeCount.data();
+          uint64_t transf_bytes=0;
+
+          while (transf_bytes < tot_bytes)
+          {
+              MPI_File_write_at(fh, offset, curr_pointer, chunk_bytes, MPI_BYTE, MPI_STATUS_IGNORE);
+              transf_bytes+=chunk_bytes;
+              offset+=chunk_bytes;
+              curr_pointer+=chunk_bytes;
+
+              if (tot_bytes-transf_bytes < INT_MAX)
+                  chunk_bytes=tot_bytes-transf_bytes;
+          } 
+      }
   }
-  
+
   MPI_Barrier(MPI_COMM_WORLD);
 
-  // write the edge prefix counts first (required for CSR 
-  // construction during reading)
-  GraphElem ec_offset = 0;
-  MPI_Exscan(&alocalNumVertices, &ec_offset, 1, MPI_GRAPH_TYPE, MPI_SUM, MPI_COMM_WORLD);
+  if (rank == 0)
+      std::cout << "Beginning to write the second part of the binary file (edges)." << std::endl;      
 
-  uint64_t tot_bytes = alocalNumVertices * sizeof(GraphElem);
-  MPI_Offset offset = 2*sizeof(GraphElem) + ec_offset*sizeof(GraphElem);
+  // write the edge list next, prepare CSR format
+  tot_bytes = numEdges * sizeof(Edge);
+  std::vector<Edge> csrCols(numEdges);
+
+  for (GraphElem i = 0; i < numEdges; i++) {
+      csrCols.emplace_back(rredata[i].j_, rredata[i].w_);
+  }
+
+  GraphElem e_offset = 0;
+  MPI_Exscan(&numEdges, &e_offset, 1, MPI_GRAPH_TYPE, MPI_SUM, MPI_COMM_WORLD);
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  
+  // processes write edges
+  offset = 2*sizeof(GraphElem) + (globalNumVertices+1)*sizeof(GraphElem) + e_offset*(sizeof(Edge));
 
   if (tot_bytes < INT_MAX)
-      MPI_File_write_at(fh, offset, edgeCount.data(), tot_bytes, MPI_BYTE, MPI_STATUS_IGNORE);
+      MPI_File_write_at(fh, offset, csrCols.data(), tot_bytes, MPI_BYTE, MPI_STATUS_IGNORE);
   else {
-      int chunk_bytes=INT_MAX;
-      uint8_t *curr_pointer = (uint8_t*) edgeCount.data();
+      int chunk_bytes = INT_MAX;
+      uint8_t *curr_pointer = (uint8_t*)csrCols.data();
       uint64_t transf_bytes=0;
 
       while (transf_bytes<tot_bytes)
@@ -397,45 +415,9 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
           offset+=chunk_bytes;
           curr_pointer+=chunk_bytes;
 
-          if (tot_bytes-transf_bytes<INT_MAX)
+          if (tot_bytes-transf_bytes < INT_MAX)
               chunk_bytes=tot_bytes-transf_bytes;
       } 
-  }
-
-  if (rank == 0)
-      std::cout << "Beginning to write the second part of the binary file (edges) using " << elprocs << " processes." << std::endl;      
-
-  // write the edge list next
-  tot_bytes = numEdges * sizeof(Edge);
-
-  GraphElem e_offset = 0;
-  MPI_Exscan(&numEdges, &e_offset, 1, MPI_GRAPH_TYPE, MPI_SUM, MPI_COMM_WORLD);
-
-  MPI_Barrier(MPI_COMM_WORLD);
-  
-  // participate in writing only if a process has something to contribute
-  if (tot_bytes > 0) {
-	  
-	  offset = 2*sizeof(GraphElem) + (globalNumVertices+1)*sizeof(GraphElem) + e_offset*(sizeof(Edge));
-	  
-	  if (tot_bytes<INT_MAX)
-		  MPI_File_write_at(fh, offset, edgeList.data(), tot_bytes, MPI_BYTE, MPI_STATUS_IGNORE);
-	  else {
-		  int chunk_bytes=INT_MAX;
-		  uint8_t *curr_pointer = (uint8_t*)edgeList.data();
-		  uint64_t transf_bytes=0;
-
-		  while (transf_bytes<tot_bytes)
-		  {
-			  MPI_File_write_at(fh, offset, curr_pointer, chunk_bytes, MPI_BYTE, MPI_STATUS_IGNORE);
-			  transf_bytes+=chunk_bytes;
-			  offset+=chunk_bytes;
-			  curr_pointer+=chunk_bytes;
-
-			  if (tot_bytes-transf_bytes<INT_MAX)
-				  chunk_bytes=tot_bytes-transf_bytes;
-		  } 
-	  }
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
@@ -446,5 +428,11 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
       std::cout << "Completed writing the binary file: " << fileOutPath << std::endl;      
 
   edgeCount.clear();
-  edgeList.clear();
+  sredata.clear();
+  rredata.clear();
+  ssize.clear();
+  rsize.clear();
+  sdispls.clear();
+  rdispls.clear();
+  parts.clear();
 } // loadParallelFileShards

@@ -74,6 +74,9 @@ struct Edge {
   GraphWeight weight;
 
   Edge();
+  Edge(GraphElem t, GraphWeight w): 
+        tail(t), weight(w) 
+  {}
 };
 
 struct EdgeTuple
