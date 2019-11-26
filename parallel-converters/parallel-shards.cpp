@@ -429,6 +429,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
       std::cout << "Completed writing the binary file: " << fileOutPath << std::endl;      
 
   edgeCount.clear();
+  edgeCountTmp.clear();
   sredata.clear();
   rredata.clear();
   ssize.clear();
