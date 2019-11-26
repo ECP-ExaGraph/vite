@@ -80,7 +80,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   assert(fileEndIndex >= 0);
   assert(fileEndIndex >= fileStartIndex);
 
-  GraphElem numEdges = 0, numVertices = -1;
+  GraphElem numEdges = 0, numVertices = 0;
   int file_open_error;
   MPI_File fh;
 
