@@ -218,16 +218,17 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   // build MPI edge tuple datatype
   GraphElemTuple et;
   MPI_Datatype ettype;
-
-  MPI_Aint begin, s, t, w;
-  MPI_Get_address(&et, &begin);
-  MPI_Get_address(&et.i_, &s);
-  MPI_Get_address(&et.j_, &t);
-  MPI_Get_address(&et.w_, &w);
-
+  MPI_Aint displ[3], base;
   int blens[] = { 1, 1, 1 };
-  MPI_Aint displ[] = { s - begin, t - begin, w - begin };
   MPI_Datatype types[] = { MPI_GRAPH_TYPE, MPI_GRAPH_TYPE, MPI_WEIGHT_TYPE };
+
+  MPI_Get_address(&et, displ);
+  MPI_Get_address(&et.j_, displ+1);
+  MPI_Get_address(&et.w_, displ+2);
+  base = displ[0];
+
+  for (int i = 0; i < 3; i++)
+      displ[i] = MPI_Aint_diff(displ[i], base);
 
   MPI_Type_create_struct(3, blens, displ, types, &ettype);
   MPI_Type_commit(&ettype);
