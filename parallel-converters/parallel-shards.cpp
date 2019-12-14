@@ -130,9 +130,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 
 	  v_lo = (GraphElem)(std::stoi(fileName_left) - 1)*shardCount;
 	  v_hi = (GraphElem)(std::stoi(fileName_right) - 1)*shardCount;
-#if defined(DEBUG_PRINTF)
-	  std::cout << "File processing: " << fileName_full << "; Ranges: " << v_lo  << ", " << v_hi << std::endl;
-#endif
+
 	  // open file shard and start reading
 	  std::ifstream ifs;
 	  ifs.open((mpit->second).c_str(), std::ifstream::in);
@@ -149,12 +147,8 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 		  std::istringstream iss(line);
 
 		  // read from current shard 
-                  if (wtype == ORG_WEIGHT)
+                  if (wtype == ORG_WEIGHT || wtype == ABS_WEIGHT)
                       iss >> v0 >> ch >> v1 >> ch >> info >> ch >> w;
-                  if (wtype == ABS_WEIGHT) {
-                      iss >> v0 >> ch >> v1 >> ch >> info >> ch >> w;
-                      w = std::fabs(w);
-                  }
                   else
                       iss >> v0 >> ch >> v1 >> ch >> info;
 
@@ -167,7 +161,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 		  v0 += v_lo;
 		  v1 += v_hi;
 
-		  edgeList.push_back({v0, v1, w});
+                  numEdges++;
 
 		  if (v0 > numVertices)
                       numVertices = v0;
@@ -179,7 +173,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 	  ifs.close();
   }
 
-  numEdges = edgeList.size()*2;
+  numEdges *= 2;
   
   // idle processes wait at the barrier
   MPI_Barrier(MPI_COMM_WORLD);
@@ -188,8 +182,6 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   
   if (rank == 0)
       std::cout << "Read the files using " << elprocs << " processes." << std::endl;      
-
-  fileProc.clear();
 
   // numEdges/numVertices to be written by process 0
   GraphElem globalNumVertices = 0, globalNumEdges = 0;
@@ -200,10 +192,12 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   if (!indexOneBased)
       globalNumVertices += 1;
 
-  if (rank == 0)
+  if (rank == 0) {
       std::cout << "Graph #nvertices: " << globalNumVertices << ", #edges: " << globalNumEdges << std::endl;
+      std::cout << "Starting to read the file data..." << std::endl;
+  }
 
-  /// Part 2: Assuming a vertex-based distribution, distribute edges and build edgeCount
+  /// Part 1.5: Read the files again, this time store the data
   std::vector<GraphElem> parts(nprocs+1); 
   parts[0] = 0;
 
@@ -214,7 +208,86 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 
   std::vector<GraphElem> edgeCount(globalNumVertices+1), edgeCountTmp(globalNumVertices+1);
   std::vector<std::vector<GraphElemTuple>> outEdges(nprocs);
+  std::vector<GraphElem>::iterator iter;
+  int owner = -1;
   
+  for (std::map<GraphElem, std::string>::iterator mpit = fileProc.begin(); mpit != fileProc.end(); ++mpit) {
+
+	  // retrieve lo/hi range from file name string
+	  std::string fileName_full = (mpit->second).substr((mpit->second).find_last_of("/") + 1);
+	  std::string fileName_noext = fileName_full.substr(0, fileName_full.find("."));
+	  std::string fileName_right = fileName_noext.substr(fileName_full.find("__") + 2);
+	  std::string fileName_left = fileName_noext.substr(0, fileName_full.find("__"));
+
+	  v_lo = (GraphElem)(std::stoi(fileName_left) - 1)*shardCount;
+	  v_hi = (GraphElem)(std::stoi(fileName_right) - 1)*shardCount;
+#if defined(DEBUG_PRINTF)
+	  std::cout << "File processing: " << fileName_full << "; Ranges: " << v_lo  << ", " << v_hi << std::endl;
+#endif
+
+          if (v_lo >= parts[rank] && v_hi <= parts[rank+1]) {
+
+              // open file shard and start reading
+              std::ifstream ifs;
+              ifs.open((mpit->second).c_str(), std::ifstream::in);
+
+              std::string line;
+
+              while(!ifs.eof()) {
+
+                  GraphElem v0, v1, info;
+                  GraphWeight w;
+                  char ch;
+
+                  std::getline(ifs, line);
+                  std::istringstream iss(line);
+
+                  // read from current shard 
+                  if (wtype == ORG_WEIGHT)
+                      iss >> v0 >> ch >> v1 >> ch >> info >> ch >> w;
+                  if (wtype == ABS_WEIGHT) {
+                      iss >> v0 >> ch >> v1 >> ch >> info >> ch >> w;
+                      w = std::fabs(w);
+                  }
+                  else
+                      iss >> v0 >> ch >> v1 >> ch >> info;
+
+                  if (indexOneBased) {
+                      v0--; 
+                      v1--;
+                  }
+
+                  // normalize v0/v1 by adding lo/hi shard ID
+                  v0 += v_lo;
+                  v1 += v_hi;
+              
+                  iter = std::upper_bound(parts.begin(), parts.end(), v0);
+                  owner = (iter - parts.begin() - 1);
+                  
+                  if (owner == rank) {
+                      // populate edge list
+                      edgeList.push_back({v0, v1, w});
+
+                      // edge count
+                      edgeCount[v0+1]++; 
+                      edgeCount[v1+1]++; 
+
+                      // search ghost owner and push it to outgoing edge list
+                      iter = std::upper_bound(parts.begin(), parts.end(), v1);
+                      int ghost_owner = (iter - parts.begin() - 1);
+                      outEdges[ghost_owner].push_back({v1, v0, w});
+                  }
+              }
+
+              // close current shard
+              ifs.close();
+          }
+  }
+
+  fileProc.clear();
+
+  /// Part 2: Assuming a vertex-based distribution, distribute edges and build edgeCount
+ 
   // build MPI edge tuple datatype
   GraphElemTuple et;
   MPI_Datatype ettype;
@@ -233,37 +306,8 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   MPI_Type_create_struct(3, blens, displ, types, &ettype);
   MPI_Type_commit(&ettype);
   
-  // Spread edge lists uniformly across processes
-  // and perform local edge counting (assuming a 
-  // vertex-based distribution)
-  std::vector<GraphElem>::iterator iter; 
-  int owner;
-  
-  for (GraphElem i = 0; i < (numEdges/2); i++) {
-      GraphElem vertex = edgeList[i].i_;
-
-      // get owner
-      iter = std::upper_bound(parts.begin(), parts.end(), vertex);
-      owner = (iter - parts.begin() - 1);
-      edgeCount[vertex+1]++; 
-      
-      outEdges[owner].emplace_back(edgeList[i]);
-
-      // repeat for another end point
-      vertex = edgeList[i].j_;
-
-      // get owner
-      iter = std::upper_bound(parts.begin(), parts.end(), vertex);
-      owner = (iter - parts.begin() - 1);
-      edgeCount[vertex+1]++; 
-
-      outEdges[owner].emplace_back(edgeList[i].j_, edgeList[i].i_, edgeList[i].w_);
-  }
-
   if (rank == 0)
       std::cout << "Filled outgoing (undirected) edge lists." << std::endl;
-
-  edgeList.clear();
 
   MPI_Barrier(MPI_COMM_WORLD);
 
@@ -302,8 +346,17 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
           ettype, rredata.data(), rsize.data(), rdispls.data(), 
           ettype, MPI_COMM_WORLD);
 
+  // insert ghosts into the local edgeList
+  GraphElem j = 0;
+  for (int p = 0; p < nprocs; p++) {
+      for (GraphElem i = 0; i < rsize[p]; i++) {
+          edgeList.push_back(rredata[j+i]);
+      }
+      j += rsize[p];
+  }
+
   // updated #edges
-  numEdges = rredata.size();
+  numEdges = edgeList.size();
 
   // reduction on edge counts
   MPI_Reduce(edgeCount.data(), edgeCountTmp.data(), globalNumVertices, 
@@ -324,11 +377,11 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   auto ecmp = [] (GraphElemTuple const& e0, GraphElemTuple const& e1)
   { return ((e0.i_ < e1.i_) || ((e0.i_ == e1.i_) && (e0.j_ < e1.j_))); };
 
-  if (!std::is_sorted(rredata.begin(), rredata.end(), ecmp)) {
+  if (!std::is_sorted(edgeList.begin(), edgeList.end(), ecmp)) {
 #if defined(DEBUG_PRINTF)
 	  std::cout << "Edge list is not sorted" << std::endl;
 #endif
-	  std::sort(rredata.begin(), rredata.end(), ecmp);
+	  std::sort(edgeList.begin(), edgeList.end(), ecmp);
   }
   else {
 #if defined(DEBUG_PRINTF)
@@ -392,7 +445,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   std::vector<Edge> csrCols(numEdges);
 
   for (GraphElem i = 0; i < numEdges; i++) {
-      csrCols.emplace_back(rredata[i].j_, rredata[i].w_);
+      csrCols.emplace_back(edgeList[i].j_, edgeList[i].w_);
   }
 
   GraphElem e_offset = 0;
@@ -429,6 +482,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   if (rank == 0)
       std::cout << "Completed writing the binary file: " << fileOutPath << std::endl;      
 
+  edgeList.clear();
   edgeCount.clear();
   edgeCountTmp.clear();
   sredata.clear();
