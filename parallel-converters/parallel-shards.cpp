@@ -283,6 +283,8 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
               ifs.close();
           }
   }
+  
+  MPI_Barrier(MPI_COMM_WORLD);
 
   fileProc.clear();
 
@@ -345,6 +347,9 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   MPI_Alltoallv(sredata.data(), ssize.data(), sdispls.data(), 
           ettype, rredata.data(), rsize.data(), rdispls.data(), 
           ettype, MPI_COMM_WORLD);
+  
+  if (rank == 0)
+      std::cout << "Exchanged ghost vertices across processes." << std::endl;
 
   // insert ghosts into the local edgeList
   GraphElem j = 0;
@@ -354,7 +359,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
       }
       j += rsize[p];
   }
-
+  
   // updated #edges
   numEdges = edgeList.size();
 
