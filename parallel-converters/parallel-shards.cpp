@@ -225,7 +225,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 	  std::cout << "File processing: " << fileName_full << "; Ranges: " << v_lo  << ", " << v_hi << std::endl;
 #endif
 
-          if (v_lo >= parts[rank] && v_hi <= parts[rank+1]) {
+          if (v_lo >= parts[rank] && v_lo <= parts[rank+1]) {
 
               // open file shard and start reading
               std::ifstream ifs;
