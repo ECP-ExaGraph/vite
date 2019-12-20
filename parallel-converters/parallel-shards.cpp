@@ -116,8 +116,6 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 
   MPI_Barrier(MPI_COMM_WORLD);
 
-  GraphElem v_hi = -1, v_lo = -1;
-
   // read the files only if I can
   std::map<GraphElem, std::string>::iterator mpit = fileProc.find(rank);
   
@@ -128,8 +126,8 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 	  std::string fileName_right = fileName_noext.substr(fileName_full.find("__") + 2);
 	  std::string fileName_left = fileName_noext.substr(0, fileName_full.find("__"));
 
-	  v_lo = (GraphElem)(std::stoi(fileName_left) - 1)*shardCount;
-	  v_hi = (GraphElem)(std::stoi(fileName_right) - 1)*shardCount;
+	  GraphElem v_lo = (GraphElem)(std::stoi(fileName_left) - 1)*shardCount;
+	  GraphElem v_hi = (GraphElem)(std::stoi(fileName_right) - 1)*shardCount;
 
 	  // open file shard and start reading
 	  std::ifstream ifs;
@@ -194,7 +192,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 
   if (rank == 0) {
       std::cout << "Graph #nvertices: " << globalNumVertices << ", #edges: " << globalNumEdges << std::endl;
-      std::cout << "Starting to read the file data..." << std::endl;
+      std::cout << "Starting to store the file data..." << std::endl;
   }
 
   /// Part 1.5: Read the files again, this time store the data
@@ -208,10 +206,8 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 
   std::vector<GraphElem> edgeCount(globalNumVertices+1), edgeCountTmp(globalNumVertices+1);
   std::vector<std::vector<GraphElemTuple>> outEdges(nprocs);
-  std::vector<GraphElem>::iterator iter;
-  int owner = -1;
   
-  for (std::map<GraphElem, std::string>::iterator mpit = fileProc.begin(); mpit != fileProc.end(); ++mpit) {
+  for (auto mpit = fileProc.begin(); mpit != fileProc.end(); ++mpit) {
 
 	  // retrieve lo/hi range from file name string
 	  std::string fileName_full = (mpit->second).substr((mpit->second).find_last_of("/") + 1);
@@ -219,8 +215,8 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 	  std::string fileName_right = fileName_noext.substr(fileName_full.find("__") + 2);
 	  std::string fileName_left = fileName_noext.substr(0, fileName_full.find("__"));
 
-	  v_lo = (GraphElem)(std::stoi(fileName_left) - 1)*shardCount;
-	  v_hi = (GraphElem)(std::stoi(fileName_right) - 1)*shardCount;
+	  GraphElem v_lo = (GraphElem)(std::stoi(fileName_left) - 1)*shardCount;
+	  GraphElem v_hi = (GraphElem)(std::stoi(fileName_right) - 1)*shardCount;
 #if defined(DEBUG_PRINTF)
 	  std::cout << "File processing: " << fileName_full << "; Ranges: " << v_lo  << ", " << v_hi << std::endl;
 #endif
@@ -261,8 +257,8 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
                   v0 += v_lo;
                   v1 += v_hi;
               
-                  iter = std::upper_bound(parts.begin(), parts.end(), v0);
-                  owner = (iter - parts.begin() - 1);
+                  auto iter = std::upper_bound(parts.begin(), parts.end(), v0);
+                  int owner = (iter - parts.begin() - 1);
                   
                   if (owner == rank) {
                       // populate edge list
