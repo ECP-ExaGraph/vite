@@ -434,7 +434,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 
       // write the edge prefix counts first (required for CSR 
       // construction during reading) 
-      tot_bytes = globalNumVertices * sizeof(GraphElem);
+      tot_bytes = (globalNumVertices+1) * sizeof(GraphElem);
       offset = 2*sizeof(GraphElem);
 
       if (tot_bytes < INT_MAX)
