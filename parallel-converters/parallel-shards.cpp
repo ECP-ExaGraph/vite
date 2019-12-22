@@ -220,16 +220,14 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 #if defined(DEBUG_PRINTF)
 	  std::cout << "File processing: " << fileName_full << "; Ranges: " << v_lo  << ", " << v_hi << std::endl;
 #endif
-          bool checkedFile = true;
-
-          if (v_lo >= parts[rank] && v_lo <= parts[rank+1]) {
+          
+          if (parts[rank] >= v_lo && parts[rank+1] <= v_hi) {
 
               // open file shard and start reading
               std::ifstream ifs;
               ifs.open((mpit->second).c_str(), std::ifstream::in);
 
               std::string line;
-              GraphElem past_v = -1;
 
               while(!ifs.eof()) {
 
@@ -259,7 +257,10 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
                   v0 += v_lo;
                   v1 += v_hi;
 
-                  if (past_v == v0) {
+                  auto iter = std::upper_bound(parts.begin(), parts.end(), v0);
+                  int owner = (iter - parts.begin() - 1);
+
+                  if (owner == rank) {
                       // populate edge list
                       edgeList.push_back({v0, v1, w});
 
@@ -268,32 +269,10 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
                       edgeCount[v1+1]++; 
 
                       // search ghost owner and push it to outgoing edge list
-                      auto iter = std::upper_bound(parts.begin(), parts.end(), v1);
+                      iter = std::upper_bound(parts.begin(), parts.end(), v1);
                       int ghost_owner = (iter - parts.begin() - 1);
                       outEdges[ghost_owner].push_back({v1, v0, w});
                   }
-                  else {
-                      auto iter = std::upper_bound(parts.begin(), parts.end(), v0);
-                      int owner = (iter - parts.begin() - 1);
-
-                      if (owner == rank) {
-                          // populate edge list
-                          edgeList.push_back({v0, v1, w});
-
-                          // edge count
-                          edgeCount[v0+1]++; 
-                          edgeCount[v1+1]++; 
-
-                          // search ghost owner and push it to outgoing edge list
-                          iter = std::upper_bound(parts.begin(), parts.end(), v1);
-                          int ghost_owner = (iter - parts.begin() - 1);
-                          outEdges[ghost_owner].push_back({v1, v0, w});
-                      }
-                      else
-                          break;
-                  }
-                  
-                  past_v = v0;
               }
 
               // close current shard
