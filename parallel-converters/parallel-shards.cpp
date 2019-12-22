@@ -228,6 +228,8 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
               ifs.open((mpit->second).c_str(), std::ifstream::in);
 
               std::string line;
+              int past_owner = -1;
+              bool checkedFile = false;
 
               while(!ifs.eof()) {
 
@@ -272,7 +274,15 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
                       iter = std::upper_bound(parts.begin(), parts.end(), v1);
                       int ghost_owner = (iter - parts.begin() - 1);
                       outEdges[ghost_owner].push_back({v1, v0, w});
+
+                      if (!checkedFile)
+                          checkedFile = true;
                   }
+
+                  if (checkedFile && (owner != past_owner))
+                      break;
+
+                  past_owner = owner;
               }
 
               // close current shard
