@@ -228,8 +228,9 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
               ifs.open((mpit->second).c_str(), std::ifstream::in);
 
               std::string line;
-              int past_owner = -1;
+              int past_owner = -1, owner = -1;
               bool checkedFile = false;
+              GraphElem past_v = -1;
 
               while(!ifs.eof()) {
 
@@ -259,8 +260,10 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
                   v0 += v_lo;
                   v1 += v_hi;
 
-                  auto iter = std::upper_bound(parts.begin(), parts.end(), v0);
-                  int owner = (iter - parts.begin() - 1);
+                  if (past_v != v0) { // recompute owner
+                      auto iter = std::upper_bound(parts.begin(), parts.end(), v0);
+                      owner = (iter - parts.begin() - 1);
+                  }
 
                   if (owner == rank) {
                       // populate edge list
@@ -271,7 +274,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
                       edgeCount[v1+1]++; 
 
                       // search ghost owner and push it to outgoing edge list
-                      iter = std::upper_bound(parts.begin(), parts.end(), v1);
+                      auto iter = std::upper_bound(parts.begin(), parts.end(), v1);
                       int ghost_owner = (iter - parts.begin() - 1);
                       outEdges[ghost_owner].push_back({v1, v0, w});
 
@@ -283,6 +286,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
                       break;
 
                   past_owner = owner;
+                  past_v = v0;
               }
 
               // close current shard
@@ -375,11 +379,12 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
    
   if (rank == 0) {
       edgeCount = edgeCountTmp;
-      std::cout << "Redistributed edges and performed reduction on edge counts." << std::endl;
 
       // local prefix sum
       for (GraphElem i = 1; i < globalNumVertices; i++)
           edgeCount[i] += edgeCount[i-1];
+      
+      std::cout << "Redistributed edges and performed reduction on edge counts." << std::endl;
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
@@ -399,6 +404,9 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 	  std::cout << "Edge list is sorted!" << std::endl;
 #endif
   }
+
+  if (rank == 0)
+      std::cout << "Sorted the edge list." << std::endl;
 
   MPI_Barrier(MPI_COMM_WORLD);
 
