@@ -282,9 +282,8 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
                           checkedFile = true;
                   }
 
-                  // do I need to continue reading or 
-                  // am I done
-                  if (checkedFile && (owner != past_owner) && past_owner != -1)
+                  // do I need to continue reading or am I done
+                  if (checkedFile && (past_owner != rank))
                       break;
 
                   past_owner = owner;
