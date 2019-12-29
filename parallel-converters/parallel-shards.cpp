@@ -221,7 +221,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 	  std::cout << "File processing: " << fileName_full << "; Ranges: " << v_lo  << ", " << v_hi << std::endl;
 #endif
           
-          if (parts[rank] >= v_lo && parts[rank+1] <= v_hi) {
+          if (parts[rank] >= v_lo) {
 
               // open file shard and start reading
               std::ifstream ifs;
@@ -283,7 +283,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
                   }
 
                   // do I need to continue reading or am I done
-                  if (checkedFile && (past_owner != rank))
+                  if (checkedFile && (past_owner != rank) && (past_owner != -1))
                       break;
 
                   past_owner = owner;
