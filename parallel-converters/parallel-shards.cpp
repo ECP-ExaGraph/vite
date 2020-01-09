@@ -217,7 +217,10 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 
   std::vector<GraphElem> edgeCount(globalNumVertices+1), edgeCountTmp(globalNumVertices+1);
   std::vector<std::vector<GraphElemTuple>> outEdges(nprocs);
-  int v = 0; // index for max_vs
+  int v = 0; // index for max|min_vs
+
+  // Assumption: since #PEs > #files, multiple PEs will open a single 
+  // file, but a PE will not open multiple files.
   
   for (auto mpit = fileProc.begin(); mpit != fileProc.end(); ++mpit) {
 
@@ -304,6 +307,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 
               // close current shard
               ifs.close();
+              break;
           }
 	  v++;
   }
