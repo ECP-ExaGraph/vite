@@ -179,14 +179,14 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 
   numEdges *= 2;
 
+  // idle processes wait at the barrier
+  MPI_Barrier(MPI_COMM_WORLD);
+  
   // get the maximum and minimum vertex ID per file/process
   std::vector<GraphElem> max_vs(nprocs), min_vs(nprocs);
   MPI_Alltoall(&max_v, 1, MPI_GRAPH_TYPE, max_vs.data(), 1, MPI_GRAPH_TYPE, MPI_COMM_WORLD);
   MPI_Alltoall(&min_v, 1, MPI_GRAPH_TYPE, min_vs.data(), 1, MPI_GRAPH_TYPE, MPI_COMM_WORLD);
-  
-  // idle processes wait at the barrier
-  MPI_Barrier(MPI_COMM_WORLD);
-
+ 
   const int elprocs = fileProc.size();
   
   if (rank == 0)
@@ -307,7 +307,6 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 
               // close current shard
               ifs.close();
-              break;
           }
 	  v++;
   }
