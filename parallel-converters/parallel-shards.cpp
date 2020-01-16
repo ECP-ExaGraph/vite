@@ -118,7 +118,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 
   // read the files only if I can
   std::map<GraphElem, std::string>::iterator mpit = fileProc.find(rank);
-  GraphElem max_v = 0, min_v = -1;
+  GraphElem minmax_v[2] = {-1,0};
   
   if (mpit != fileProc.end()) {
 	  // retrieve lo/hi range from file name string
@@ -168,9 +168,9 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
                       numVertices = v1;
 
 		  // assuming vertices in each file are presorted
-		  if (min_v == -1)
-			  min_v = v0;
-		  max_v = v0;
+		  if (minmax_v[0] == -1)
+			  minmax_v[0] = v0;
+		  minmax_v[1] = v0;
 	  }
 
 	  // close current shard
@@ -183,9 +183,8 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   MPI_Barrier(MPI_COMM_WORLD);
   
   // get the maximum and minimum vertex ID per file/process
-  std::vector<GraphElem> max_vs(nprocs), min_vs(nprocs);
-  MPI_Alltoall(&max_v, 1, MPI_GRAPH_TYPE, max_vs.data(), 1, MPI_GRAPH_TYPE, MPI_COMM_WORLD);
-  MPI_Alltoall(&min_v, 1, MPI_GRAPH_TYPE, min_vs.data(), 1, MPI_GRAPH_TYPE, MPI_COMM_WORLD);
+  std::vector<GraphElem> minmax_vs(nprocs*2);
+  MPI_Alltoall(minmax_v, 2, MPI_GRAPH_TYPE, minmax_vs.data(), 2, MPI_GRAPH_TYPE, MPI_COMM_WORLD);
  
   const int elprocs = fileProc.size();
   
@@ -236,7 +235,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 	  std::cout << "File processing: " << fileName_full << "; Ranges: " << v_lo  << ", " << v_hi << std::endl;
 #endif
           
-          if (parts[rank] >= min_vs[v] && parts[rank+1] <= max_vs[v]) {
+          if ((parts[rank] >= minmax_vs[v]) && (parts[rank+1] <= minmax_vs[v+1])) {
 
               // open file shard and start reading
               std::ifstream ifs;
@@ -308,7 +307,8 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
               // close current shard
               ifs.close();
           }
-	  v++;
+
+	  v += 2;
   }
   
   MPI_Barrier(MPI_COMM_WORLD);
@@ -518,6 +518,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   if (rank == 0)
       std::cout << "Completed writing the binary file: " << fileOutPath << std::endl;      
 
+  minmax_vs.clear();
   edgeList.clear();
   edgeCount.clear();
   edgeCountTmp.clear();
