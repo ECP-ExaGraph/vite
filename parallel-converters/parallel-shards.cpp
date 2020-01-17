@@ -204,6 +204,8 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
       std::cout << "Graph #nvertices: " << globalNumVertices << ", #edges: " << globalNumEdges << std::endl;
       std::cout << "Starting to store the file data..." << std::endl;
   }
+  
+  MPI_Barrier(MPI_COMM_WORLD);
 
   /// Part 1.5: Read the files again, this time store the data
   std::vector<GraphElem> parts(nprocs+1); 
