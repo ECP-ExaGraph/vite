@@ -168,6 +168,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
                       numVertices = v1;
 
 		  // assuming vertices in each file are presorted
+                  // multiple files could have the *same* min/max vertex ID
 		  if (minmax_v[0] == -1)
 			  minmax_v[0] = v0;
 		  minmax_v[1] = v0;
@@ -220,9 +221,6 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   std::vector<std::vector<GraphElemTuple>> outEdges(nprocs);
   int v = 0; // index for max|min_vs
 
-  // Assumption: since #PEs > #files, multiple PEs will open a single 
-  // file, but a PE will not open multiple files.
-  
   for (auto mpit = fileProc.begin(); mpit != fileProc.end(); ++mpit) {
 
 	  // retrieve lo/hi range from file name string
