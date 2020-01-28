@@ -87,7 +87,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   /// Part 1: Read the file shards into edge list  
   
   std::vector<GraphElemTuple> edgeList;
-  std::map<GraphElem, std::string> fileProc;
+  std::map<GraphElem, std::vector<std::string> > fileProc;
 
   // make a list of the files and processes
   GraphElem proc = 0;
@@ -106,9 +106,14 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
               continue;
 
           // push in the dictionary
-          fileProc.insert(std::pair<GraphElem, std::string>(proc, fileName));
+          if (fileProc.find(proc) == fileProc.end()) { // not found
+              fileProc.insert({proc, std::vector<std::string>()});
+              fileProc[proc].push_back(fileName);
+          } else { // found
+              fileProc[proc].push_back(fileName);
+          }
 
-          proc++;
+          proc = (proc + 1)%nprocs;
 
           ifs.close();
       }
@@ -117,65 +122,69 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   MPI_Barrier(MPI_COMM_WORLD);
 
   // read the files only if I can
-  std::map<GraphElem, std::string>::iterator mpit = fileProc.find(rank);
+  std::map<GraphElem, std::vector<std::string> >::iterator mpit = fileProc.find(rank);
   GraphElem minmax_v[2] = {-1,0};
-  
+
   if (mpit != fileProc.end()) {
-	  // retrieve lo/hi range from file name string
-	  std::string fileName_full = (mpit->second).substr((mpit->second).find_last_of("/") + 1);
-	  std::string fileName_noext = fileName_full.substr(0, fileName_full.find("."));
-	  std::string fileName_right = fileName_noext.substr(fileName_full.find("__") + 2);
-	  std::string fileName_left = fileName_noext.substr(0, fileName_full.find("__"));
 
-	  GraphElem v_lo = (GraphElem)(std::stoi(fileName_left) - 1)*shardCount;
-	  GraphElem v_hi = (GraphElem)(std::stoi(fileName_right) - 1)*shardCount;
+      for (int k = 0; k < mpit->second.size(); k++) {
 
-	  // open file shard and start reading
-	  std::ifstream ifs;
-	  ifs.open((mpit->second).c_str(), std::ifstream::in);
+          // retrieve lo/hi range from file name string
+          std::string fileName_full = (mpit->second[k]).substr((mpit->second[k]).find_last_of("/") + 1);
+          std::string fileName_noext = fileName_full.substr(0, fileName_full.find("."));
+          std::string fileName_right = fileName_noext.substr(fileName_full.find("__") + 2);
+          std::string fileName_left = fileName_noext.substr(0, fileName_full.find("__"));
 
-	  std::string line;
+          GraphElem v_lo = (GraphElem)(std::stoi(fileName_left) - 1)*shardCount;
+          GraphElem v_hi = (GraphElem)(std::stoi(fileName_right) - 1)*shardCount;
 
-	  while(!ifs.eof()) {
+          // open file shard and start reading
+          std::ifstream ifs;
+          ifs.open((mpit->second[k]).c_str(), std::ifstream::in);
 
-		  GraphElem v0, v1, info;
-		  GraphWeight w;
-		  char ch;
+          std::string line;
 
-		  std::getline(ifs, line);
-		  std::istringstream iss(line);
+          while(!ifs.eof()) {
 
-		  // read from current shard 
-                  if (wtype == ORG_WEIGHT || wtype == ABS_WEIGHT)
-                      iss >> v0 >> ch >> v1 >> ch >> info >> ch >> w;
-                  else
-                      iss >> v0 >> ch >> v1 >> ch >> info;
+              GraphElem v0, v1, info;
+              GraphWeight w;
+              char ch;
 
-		  if (indexOneBased) {
-			  v0--; 
-			  v1--;
-		  }
+              std::getline(ifs, line);
+              std::istringstream iss(line);
 
-		  // normalize v0/v1 by adding lo/hi shard ID
-		  v0 += v_lo;
-		  v1 += v_hi;
+              // read from current shard 
+              if (wtype == ORG_WEIGHT || wtype == ABS_WEIGHT)
+                  iss >> v0 >> ch >> v1 >> ch >> info >> ch >> w;
+              else
+                  iss >> v0 >> ch >> v1 >> ch >> info;
 
-                  numEdges++;
+              if (indexOneBased) {
+                  v0--; 
+                  v1--;
+              }
 
-		  if (v0 > numVertices)
-                      numVertices = v0;
-		  if (v1 > numVertices)
-                      numVertices = v1;
+              // normalize v0/v1 by adding lo/hi shard ID
+              v0 += v_lo;
+              v1 += v_hi;
 
-		  // assuming vertices in each file are presorted
-                  // multiple files could have the *same* min/max vertex ID
-		  if (minmax_v[0] == -1)
-			  minmax_v[0] = v0;
-		  minmax_v[1] = v0;
-	  }
+              numEdges++;
 
-	  // close current shard
-	  ifs.close();
+              if (v0 > numVertices)
+                  numVertices = v0;
+              if (v1 > numVertices)
+                  numVertices = v1;
+
+              // assuming vertices in each file are presorted
+              // multiple files could have the *same* min/max vertex ID
+              if (minmax_v[0] == -1)
+                  minmax_v[0] = v0;
+              minmax_v[1] = v0;
+          }
+
+          // close current shard
+          ifs.close();
+      }
   }
 
   numEdges *= 2;
@@ -222,24 +231,25 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   int v = 0; // index for max|min_vs
 
   for (auto mpit = fileProc.begin(); mpit != fileProc.end(); ++mpit) {
+      for (int k = 0; k < mpit->second.size(); k++) {
 
-	  // retrieve lo/hi range from file name string
-	  std::string fileName_full = (mpit->second).substr((mpit->second).find_last_of("/") + 1);
-	  std::string fileName_noext = fileName_full.substr(0, fileName_full.find("."));
-	  std::string fileName_right = fileName_noext.substr(fileName_full.find("__") + 2);
-	  std::string fileName_left = fileName_noext.substr(0, fileName_full.find("__"));
+          // retrieve lo/hi range from file name string
+          std::string fileName_full = (mpit->second[k]).substr((mpit->second[k]).find_last_of("/") + 1);
+          std::string fileName_noext = fileName_full.substr(0, fileName_full.find("."));
+          std::string fileName_right = fileName_noext.substr(fileName_full.find("__") + 2);
+          std::string fileName_left = fileName_noext.substr(0, fileName_full.find("__"));
 
-	  GraphElem v_lo = (GraphElem)(std::stoi(fileName_left) - 1)*shardCount;
-	  GraphElem v_hi = (GraphElem)(std::stoi(fileName_right) - 1)*shardCount;
+          GraphElem v_lo = (GraphElem)(std::stoi(fileName_left) - 1)*shardCount;
+          GraphElem v_hi = (GraphElem)(std::stoi(fileName_right) - 1)*shardCount;
 #if defined(DEBUG_PRINTF)
-	  std::cout << "File processing: " << fileName_full << "; Ranges: " << v_lo  << ", " << v_hi << std::endl;
+          std::cout << "File processing: " << fileName_full << "; Ranges: " << v_lo  << ", " << v_hi << std::endl;
 #endif
-          
+
           if ((parts[rank] >= minmax_vs[v]) && (parts[rank+1] <= minmax_vs[v+1])) {
 
               // open file shard and start reading
               std::ifstream ifs;
-              ifs.open((mpit->second).c_str(), std::ifstream::in);
+              ifs.open((mpit->second[k]).c_str(), std::ifstream::in);
 
               std::string line;
               int owner = -1;
@@ -274,13 +284,13 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
                   v0 += v_lo;
                   v1 += v_hi;
 
-		  // recompute owner when needed
+                  // recompute owner when needed
                   if (past_v != v0) { 
                       auto iter = std::upper_bound(parts.begin(), parts.end(), v0);
                       owner = (iter - parts.begin() - 1);
                   }
-                      
-		  // populate edge list
+
+                  // populate edge list
                   if (owner == rank) {
                       edgeList.push_back({v0, v1, w});
 
@@ -308,7 +318,8 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
               ifs.close();
           }
 
-	  v += 2;
+          v += 2;
+      }
   }
   
   MPI_Barrier(MPI_COMM_WORLD);
