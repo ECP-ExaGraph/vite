@@ -80,7 +80,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   assert(fileEndIndex >= 0);
   assert(fileEndIndex >= fileStartIndex);
 
-  GraphElem numEdges = 0, numVertices = 0;
+  GraphElem numEdges = 0;
   int file_open_error;
   MPI_File fh;
 
@@ -176,11 +176,6 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 
               numEdges++;
 
-              if (v0 > numVertices)
-                  numVertices = v0;
-              if (v1 > numVertices)
-                  numVertices = v1;
-
               // assuming vertices in each file are presorted
               // multiple files could have the *same* min/max vertex ID
               if (minmax_v[0] == -1)
@@ -212,7 +207,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   GraphElem globalNumVertices = 0, globalNumEdges = 0;
   
   MPI_Allreduce(&numEdges, &globalNumEdges, 1, MPI_GRAPH_TYPE, MPI_SUM, MPI_COMM_WORLD);
-  MPI_Allreduce(&numVertices, &globalNumVertices, 1, MPI_GRAPH_TYPE, MPI_MAX, MPI_COMM_WORLD);
+  MPI_Allreduce(&minmax_v[1], &globalNumVertices, 1, MPI_GRAPH_TYPE, MPI_MAX, MPI_COMM_WORLD);
   
   if (!indexOneBased)
       globalNumVertices += 1;
