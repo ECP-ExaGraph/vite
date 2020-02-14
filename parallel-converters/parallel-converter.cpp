@@ -109,13 +109,6 @@ int main(int argc, char *argv[])
   GraphElem endChunk = std::stol(args[2]);
   GraphElem shardCount = std::stol(args[3]);
 
-  // assert total PEs > # sharded files
-  if (numFiles > size) {
-      if (me == 0)
-          std::cerr << "Number of processes must be greater-than-or-equal-to the number of sharded files." << std::endl;
-      MPI_Abort(MPI_COMM_WORLD, -99);
-  }
-
   args.clear();
  
   double t0, t1, t2, rt;
