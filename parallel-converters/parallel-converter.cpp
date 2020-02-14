@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
   if (args.size() != 4) {
       std::cerr << "Expected arguments to '-x' (in this order): <num-files> <start-chunk> <end-chunk> <shard-count>" 
           << std::endl;
-      MPI_Abort(-99, MPI_COMM_WORLD);
+      MPI_Abort(MPI_COMM_WORLD, -99);
   }
 
   GraphElem numFiles = std::stol(args[0]);
@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
   if (numFiles > size) {
       if (me == 0)
           std::cerr << "Number of processes must be greater-than-or-equal-to the number of sharded files." << std::endl;
-      MPI_Abort(-99, MPI_COMM_WORLD);
+      MPI_Abort(MPI_COMM_WORLD, -99);
   }
 
   args.clear();
