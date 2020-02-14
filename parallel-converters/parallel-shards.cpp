@@ -200,7 +200,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   const int elprocs = fileProc.size();
   
   if (rank == 0) {
-      std::cout << "Read the files using " << elprocs << " processes." << std::endl;  
+      std::cout << "Read the files using " << nprocs << " processes." << std::endl;  
   }
 
   // numEdges/numVertices to be written by process 0
@@ -229,7 +229,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   GraphElem localNumVertices = ((globalNumVertices*(rank + 1)) / nprocs) - ((globalNumVertices*rank) / nprocs); 
 
   std::vector<GraphElem> edgeCount(globalNumVertices+1), edgeCountTmp(globalNumVertices+1);
-  std::vector<std::vector<GraphElemTuple>> outEdges(nprocs);
+  std::vector<std::vector<GraphElemTuple>> outEdges(nprocs, std::vector<GraphElemTuple>());
   int v = 0; // index for max|min_vs
 
   for (auto mpit = fileProc.begin(); mpit != fileProc.end(); ++mpit) {
