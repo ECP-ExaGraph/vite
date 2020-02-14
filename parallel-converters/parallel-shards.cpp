@@ -85,10 +85,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   MPI_File fh;
 
   /// Part 1: Read the file shards into edge list  
-    
-  if (rank == 0) {
-      std::cout << "Start reading" << shardCount << " files." << std::endl;  
-  }
+
   
   std::vector<GraphElemTuple> edgeList;
   std::map<GraphElem, std::vector<std::string> > fileProc;
@@ -127,7 +124,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   MPI_Barrier(MPI_COMM_WORLD);
   
   if (rank == 0) {
-      std::cout << "Store filenames into a vector for later access." << std::endl;  
+      std::cout << "Start reading" << proc << " files." << std::endl;  
   }
 
   // read the files only if I can
