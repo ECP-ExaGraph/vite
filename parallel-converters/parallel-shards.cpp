@@ -90,7 +90,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   std::map<GraphElem, std::vector<std::string> > fileProc;
 
   // make a list of the files and processes
-  GraphElem proc = 0;
+  GraphElem proc = 0, target = 0;
   for (GraphElem ci = fileStartIndex; ci < fileEndIndex + 1; ci++) {
       for (GraphElem cj = fileStartIndex; cj < fileEndIndex + 1; cj++) {
 
@@ -106,14 +106,15 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
               continue;
 
           // push in the dictionary
-          if (fileProc.find(proc) == fileProc.end()) { // not found
-              fileProc.insert({proc, std::vector<std::string>()});
-              fileProc[proc].push_back(fileName);
+          if (fileProc.find(target) == fileProc.end()) { // not found
+              fileProc.insert({target, std::vector<std::string>()});
+              fileProc[target].push_back(fileName);
           } else { // found
-              fileProc[proc].push_back(fileName);
+              fileProc[target].push_back(fileName);
           }
 
-          proc = (proc + 1)%nprocs;
+          proc++; 
+          target = proc%nprocs;
 
           ifs.close();
       }
@@ -198,8 +199,9 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
  
   const int elprocs = fileProc.size();
   
-  if (rank == 0)
-      std::cout << "Read the files using " << elprocs << " processes." << std::endl;      
+  if (rank == 0) {
+      std::cout << "Read the files using " << elprocs << " processes." << std::endl;  
+  }
 
   // numEdges/numVertices to be written by process 0
   GraphElem globalNumVertices = 0, globalNumEdges = 0;
@@ -250,7 +252,8 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
               // open file shard and start reading
               std::ifstream ifs;
               ifs.open((mpit->second[k]).c_str(), std::ifstream::in);
-
+              
+              // read the entire file into memory
               std::string line;
               int owner = -1;
               bool checkedFile = false;
