@@ -84,9 +84,10 @@ GraphWeight distLouvainMethod(const int me, const int nprocs, const DistGraph &d
     t0 = MPI_Wtime();
 #endif
 
-#pragma omp parallel default(none), shared(clusterWeight, localCupdate, currComm, targetComm, \
+#pragma omp parallel default(none) \
+    shared(clusterWeight, localCupdate, currComm, targetComm, \
         vDegree, localCinfo, remoteCinfo, remoteComm, pastComm, dg, remoteCupdate, \
-        frozenClusterWeight, vActive, nv, me), firstprivate(constantForSecondTerm) \
+        frozenClusterWeight, vActive), firstprivate(constantForSecondTerm) \
     reduction(+: vc_count)
     {
         distCleanCWandCU(nv, clusterWeight, localCupdate);
@@ -126,7 +127,7 @@ GraphWeight distLouvainMethod(const int me, const int nprocs, const DistGraph &d
     t0 = MPI_Wtime();
 #endif
 
-#pragma omp parallel default(none), shared(localCinfo, localCupdate)
+#pragma omp parallel shared(localCinfo, localCupdate)
     {
         distUpdateLocalCinfo(localCinfo, localCupdate);
     }
@@ -161,12 +162,12 @@ GraphWeight distLouvainMethod(const int me, const int nprocs, const DistGraph &d
         prevMod = lower;
 
 #ifdef OMP_SCHEDULE_RUNTIME
-#pragma omp parallel for default(none), \
+#pragma omp parallel for default(none) \
     shared(pastComm, currComm, targetComm, vActive) \
     firstprivate(numIters) schedule(runtime)
 #else
-#pragma omp parallel for default(none), \
-    shared(pastComm, currComm, targetComm, vActive, nv) \
+#pragma omp parallel for default(none) \
+    shared(pastComm, currComm, targetComm, vActive) \
     firstprivate(numIters) schedule(static)
 #endif
     for (GraphElem i = 0; i < nv; i++) {
@@ -289,9 +290,10 @@ GraphWeight distLouvainMethod(const int me, const int nprocs,
     t0 = MPI_Wtime();
 #endif
 
-#pragma omp parallel default(none), shared(clusterWeight, localCupdate, currComm, targetComm, \
+#pragma omp parallel default(none) \
+    shared(clusterWeight, localCupdate, currComm, targetComm, \
         vDegree, localCinfo, remoteCinfo, remoteComm, pastComm, dg, remoteCupdate, \
-        frozenClusterWeight, vActive, nv), firstprivate(me, constantForSecondTerm) \
+        frozenClusterWeight, vActive), firstprivate(constantForSecondTerm) \
     reduction(+: vc_count)
     {
         distCleanCWandCU(nv, clusterWeight, localCupdate);
@@ -331,7 +333,7 @@ GraphWeight distLouvainMethod(const int me, const int nprocs,
     t0 = MPI_Wtime();
 #endif
 
-#pragma omp parallel default(none), shared(localCinfo, localCupdate)
+#pragma omp parallel shared(localCinfo, localCupdate)
     {
         distUpdateLocalCinfo(localCinfo, localCupdate);
     }
@@ -367,12 +369,12 @@ GraphWeight distLouvainMethod(const int me, const int nprocs,
 
     const GraphWeight one_minus_delta = (1.0 - ETDelta);
 #ifdef OMP_SCHEDULE_RUNTIME
-#pragma omp parallel for default(none), \
-    shared(pastComm, currComm, targetComm, vActive, p_curr, p_prev, nv) \
+#pragma omp parallel for default(none) \
+    shared(pastComm, currComm, targetComm, vActive, p_curr, p_prev) \
     firstprivate(numIters, one_minus_delta) schedule(runtime)
 #else
-#pragma omp parallel for default(none), \
-    shared(pastComm, currComm, targetComm, vActive, p_curr, p_prev, nv) \
+#pragma omp parallel for default(none) \
+    shared(pastComm, currComm, targetComm, vActive, p_curr, p_prev) \
     firstprivate(numIters, one_minus_delta) schedule(static)
 #endif
     for (GraphElem i = 0; i < nv; i++) {
@@ -492,9 +494,10 @@ GraphWeight distLouvainMethod(const int me, const int nprocs, const DistGraph &d
 #ifdef DEBUG_PRINTF  
     t0 = MPI_Wtime();
 #endif
-#pragma omp parallel default(none), shared(clusterWeight, localCupdate, currComm, targetComm, \
-        vDegree, localCinfo, remoteCinfo, remoteComm, pastComm, dg, remoteCupdate, nv), \
-    firstprivate(me, constantForSecondTerm)
+#pragma omp parallel default(none)\
+    shared(clusterWeight, localCupdate, currComm, targetComm, \
+        vDegree, localCinfo, remoteCinfo, remoteComm, pastComm, dg, remoteCupdate), \
+    firstprivate(constantForSecondTerm)
     {
         distCleanCWandCU(nv, clusterWeight, localCupdate);
 
@@ -516,7 +519,7 @@ GraphWeight distLouvainMethod(const int me, const int nprocs, const DistGraph &d
     t0 = MPI_Wtime();
 #endif
 
-#pragma omp parallel default(none), shared(localCinfo, localCupdate)
+#pragma omp parallel shared(localCinfo, localCupdate)
     {
         distUpdateLocalCinfo(localCinfo, localCupdate);
     }
@@ -551,12 +554,12 @@ GraphWeight distLouvainMethod(const int me, const int nprocs, const DistGraph &d
         prevMod = lower;
 
 #ifdef OMP_SCHEDULE_RUNTIME
-#pragma omp parallel for default(none) \
-    shared(pastComm, currComm, targetComm, nv) \
+#pragma omp parallel for  default(none) \
+    shared(pastComm, currComm, targetComm) \
     schedule(runtime)
 #else
-#pragma omp parallel for default(none) \
-    shared(pastComm, currComm, targetComm, nv) \
+#pragma omp parallel for  default(none) \
+    shared(pastComm, currComm, targetComm) \
     schedule(static)
 #endif
     for (GraphElem i = 0; i < nv; i++) {
@@ -719,9 +722,9 @@ GraphWeight distLouvainMethodWithColoring(const int me, const int nprocs, const 
 
           // update local cinfo
 #ifdef OMP_SCHEDULE_RUNTIME
-#pragma omp parallel for default(none), shared(localCinfo, localCupdate, nv) schedule(runtime)
+#pragma omp parallel for default(none) shared(localCinfo, localCupdate) schedule(runtime)
 #else
-#pragma omp parallel for default(none), shared(localCinfo, localCupdate, nv) schedule(static)
+#pragma omp parallel for default(none) shared(localCinfo, localCupdate) schedule(static)
 #endif          
           for (GraphElem i = 0; i < nv; i++) {
               localCinfo[i].size += localCupdate[i].size;
@@ -752,12 +755,12 @@ GraphWeight distLouvainMethodWithColoring(const int me, const int nprocs, const 
           prevMod = lower;   
 
 #ifdef OMP_SCHEDULE_RUNTIME
-#pragma omp parallel for default(none), \
-      shared(pastComm, currComm, targetComm, nv) \
+#pragma omp parallel for default(none) \
+      shared(pastComm, currComm, targetComm) \
       schedule(runtime)
 #else
-#pragma omp parallel for default(none), \
-      shared(pastComm, currComm, targetComm, nv) \
+#pragma omp parallel for default(none) \
+      shared(pastComm, currComm, targetComm) \
       schedule(static)
 #endif
       for (GraphElem i = 0L; i < nv; i++) {    
@@ -932,9 +935,9 @@ GraphWeight distLouvainMethodWithColoring(const int me, const int nprocs, const 
 
           // update local cinfo
 #ifdef OMP_SCHEDULE_RUNTIME
-#pragma omp parallel for default(none), shared(localCinfo, localCupdate, nv) schedule(runtime)
+#pragma omp parallel for default(none) shared(localCinfo, localCupdate) schedule(runtime)
 #else
-#pragma omp parallel for default(none), shared(localCinfo, localCupdate, nv) schedule(static)
+#pragma omp parallel for default(none) shared(localCinfo, localCupdate) schedule(static)
 #endif
           for (GraphElem i = 0; i < nv; i++) {
               localCinfo[i].size += localCupdate[i].size;
@@ -973,12 +976,12 @@ GraphWeight distLouvainMethodWithColoring(const int me, const int nprocs, const 
           prevMod = lower;   
 
 #ifdef OMP_SCHEDULE_RUNTIME
-#pragma omp parallel for default(none), \
-      shared(pastComm, currComm, targetComm, vActive, nv) \
+#pragma omp parallel for default(none)\
+      shared(pastComm, currComm, targetComm, vActive) \
       firstprivate(numIters) schedule(runtime)
 #else
-#pragma omp parallel for default(none), \
-      shared(pastComm, currComm, targetComm, vActive, nv) \
+#pragma omp parallel for default(none)\
+      shared(pastComm, currComm, targetComm, vActive) \
       firstprivate(numIters) schedule(static)
 #endif
       for (GraphElem i = 0L; i < nv; i++) {    
@@ -1168,9 +1171,9 @@ GraphWeight distLouvainMethodWithColoring(const int me, const int nprocs, const 
 
           // update local cinfo
 #ifdef OMP_SCHEDULE_RUNTIME
-#pragma omp parallel for default(none), shared(localCinfo, localCupdate, nv) schedule(runtime)
+#pragma omp parallel for default(none) shared(localCinfo, localCupdate) schedule(runtime)
 #else
-#pragma omp parallel for default(none), shared(localCinfo, localCupdate, nv) schedule(static)
+#pragma omp parallel for default(none) shared(localCinfo, localCupdate) schedule(static)
 #endif
           for (GraphElem i = 0; i < nv; i++) {
               localCinfo[i].size += localCupdate[i].size;
@@ -1210,12 +1213,12 @@ GraphWeight distLouvainMethodWithColoring(const int me, const int nprocs, const 
 
       const GraphWeight one_minus_delta = (1.0 - ETDelta);
 #ifdef OMP_SCHEDULE_RUNTIME
-#pragma omp parallel for default(none), \
-    shared(pastComm, currComm, targetComm, vActive, p_curr, p_prev, nv) \
+#pragma omp parallel for default(none) \
+    shared(pastComm, currComm, targetComm, vActive, p_curr, p_prev) \
     firstprivate(numIters, one_minus_delta) schedule(runtime)
 #else
-#pragma omp parallel for default(none), \
-    shared(pastComm, currComm, targetComm, vActive, p_curr, p_prev, nv) \
+#pragma omp parallel for default(none) \
+    shared(pastComm, currComm, targetComm, vActive, p_curr, p_prev) \
     firstprivate(numIters, one_minus_delta) schedule(static)
 #endif
     for (GraphElem i = 0; i < nv; i++) {
@@ -1401,9 +1404,9 @@ GraphWeight distLouvainMethodVertexOrder(const int me, const int nprocs, const D
       
       // update local cinfo
 #ifdef OMP_SCHEDULE_RUNTIME
-#pragma omp parallel for default(none), shared(localCinfo, localCupdate, nv) schedule(runtime)
+#pragma omp parallel for default(none) shared(localCinfo, localCupdate) schedule(runtime)
 #else
-#pragma omp parallel for default(none), shared(localCinfo, localCupdate, nv) schedule(static)
+#pragma omp parallel for default(none) shared(localCinfo, localCupdate) schedule(static)
 #endif
       for (GraphElem i = 0; i < nv; i++) {
           localCinfo[i].size += localCupdate[i].size;
@@ -1428,12 +1431,12 @@ GraphWeight distLouvainMethodVertexOrder(const int me, const int nprocs, const D
           prevMod = lower;   
       
 #ifdef OMP_SCHEDULE_RUNTIME
-#pragma omp parallel for default(none), \
-      shared(pastComm, currComm, targetComm, nv) \
+#pragma omp parallel for default(none) \
+      shared(pastComm, currComm, targetComm) \
       schedule(runtime)
 #else
-#pragma omp parallel for default(none), \
-      shared(pastComm, currComm, targetComm, nv) \
+#pragma omp parallel for default(none) \
+      shared(pastComm, currComm, targetComm) \
       schedule(static)
 #endif
       for (GraphElem i = 0; i < nv; i++) {
@@ -1622,9 +1625,9 @@ GraphWeight distLouvainMethodVertexOrder(const int me, const int nprocs, const D
       
       // update local cinfo
 #ifdef OMP_SCHEDULE_RUNTIME
-#pragma omp parallel for default(none), shared(localCinfo, localCupdate, nv) schedule(runtime)
+#pragma omp parallel for default(none) shared(localCinfo, localCupdate) schedule(runtime)
 #else
-#pragma omp parallel for default(none), shared(localCinfo, localCupdate, nv) schedule(static)
+#pragma omp parallel for default(none) shared(localCinfo, localCupdate) schedule(static)
 #endif
       for (GraphElem i = 0; i < nv; i++) {
           localCinfo[i].size += localCupdate[i].size;
@@ -1649,12 +1652,12 @@ GraphWeight distLouvainMethodVertexOrder(const int me, const int nprocs, const D
           prevMod = lower;   
       
 #ifdef OMP_SCHEDULE_RUNTIME
-#pragma omp parallel for default(none), \
-      shared(pastComm, currComm, targetComm, vActive, nv) \
+#pragma omp parallel for default(none) \
+      shared(pastComm, currComm, targetComm, vActive) \
       firstprivate(numIters) schedule(runtime)
 #else
-#pragma omp parallel for default(none), \
-      shared(pastComm, currComm, targetComm, vActive, nv) \
+#pragma omp parallel for default(none) \
+      shared(pastComm, currComm, targetComm, vActive) \
       firstprivate(numIters) schedule(static)
 #endif
       for (GraphElem i = 0L; i < nv; i++) {    
@@ -1857,9 +1860,9 @@ GraphWeight distLouvainMethodVertexOrder(const int me, const int nprocs, const D
       
       // update local cinfo
 #ifdef OMP_SCHEDULE_RUNTIME
-#pragma omp parallel for default(none), shared(localCinfo, localCupdate, nv) schedule(runtime)
+#pragma omp parallel for default(none) shared(localCinfo, localCupdate) schedule(runtime)
 #else
-#pragma omp parallel for default(none), shared(localCinfo, localCupdate, nv) schedule(static)
+#pragma omp parallel for default(none) shared(localCinfo, localCupdate) schedule(static)
 #endif
       for (GraphElem i = 0; i < nv; i++) {
           localCinfo[i].size += localCupdate[i].size;
@@ -1885,12 +1888,12 @@ GraphWeight distLouvainMethodVertexOrder(const int me, const int nprocs, const D
 
       const GraphWeight one_minus_delta = (1.0 - ETDelta);
 #ifdef OMP_SCHEDULE_RUNTIME
-#pragma omp parallel for default(none), \
-    shared(pastComm, currComm, targetComm, vActive, p_curr, p_prev, nv) \
+#pragma omp parallel for default(none)\
+    shared(pastComm, currComm, targetComm, vActive, p_curr, p_prev) \
     firstprivate(numIters, one_minus_delta) schedule(runtime)
 #else
-#pragma omp parallel for default(none), \
-    shared(pastComm, currComm, targetComm, vActive, p_curr, p_prev, nv) \
+#pragma omp parallel for default(none)\
+    shared(pastComm, currComm, targetComm, vActive, p_curr, p_prev) \
     firstprivate(numIters, one_minus_delta) schedule(static)
 #endif
     for (GraphElem i = 0; i < nv; i++) {
@@ -1962,9 +1965,9 @@ void distSumVertexDegree(const Graph &g, GraphWeightVector &vDegree, CommVector 
   const GraphElem nv = g.getNumVertices();
 
 #ifdef OMP_SCHEDULE_RUNTIME
-#pragma omp parallel for default(none), shared(nv, g, vDegree, localCinfo), schedule(runtime)
+#pragma omp parallel for default(none) shared(g, vDegree, localCinfo), schedule(runtime)
 #else
-#pragma omp parallel for default(none), shared(nv, g, vDegree, localCinfo), schedule(guided)
+#pragma omp parallel for default(none) shared(g, vDegree, localCinfo), schedule(guided)
 #endif
   for (GraphElem i = 0; i < nv; i++) {
     GraphElem e0, e1;
@@ -1993,9 +1996,9 @@ GraphWeight distCalcConstantForSecondTerm(const GraphWeightVector &vDegree)
   const size_t vsz = vDegree.size();
 
 #ifdef OMP_SCHEDULE_RUNTIME
-#pragma omp parallel for default(none), shared(vDegree, vsz), reduction(+: localWeight) schedule(runtime)
+#pragma omp parallel for default(none) shared(vDegree), reduction(+: localWeight) schedule(runtime)
 #else
-#pragma omp parallel for default(none), shared(vDegree, vsz), reduction(+: localWeight) schedule(static)
+#pragma omp parallel for default(none) shared(vDegree), reduction(+: localWeight) schedule(static)
 #endif  
   for (GraphElem i = 0; i < vsz; i++)
     localWeight += vDegree[i]; // Local reduction
@@ -2280,10 +2283,10 @@ GraphWeight distComputeModularity(const Graph &g, CommVector &localCinfo,
 #endif
 
 #ifdef OMP_SCHEDULE_RUNTIME
-#pragma omp parallel for default(none), shared(clusterWeight, localCinfo, nv), \
+#pragma omp parallel for default(none) shared(clusterWeight, localCinfo), \
   reduction(+: le_xx), reduction(+: la2_x) schedule(runtime)
 #else
-#pragma omp parallel for default(none), shared(clusterWeight, localCinfo, nv), \
+#pragma omp parallel for default(none) shared(clusterWeight, localCinfo), \
   reduction(+: le_xx), reduction(+: la2_x) schedule(static)
 #endif
   for (GraphElem i = 0L; i < nv; i++) {
@@ -2353,9 +2356,9 @@ void distInitComm(CommunityVector &pastComm, CommunityVector &currComm, const Gr
 #endif
 
 #ifdef OMP_SCHEDULE_RUNTIME
-#pragma omp parallel for default(none), shared(pastComm, currComm, csz), firstprivate(base), schedule(runtime)
+#pragma omp parallel for default(none) shared(pastComm, currComm), firstprivate(base), schedule(runtime)
 #else
-#pragma omp parallel for default(none), shared(pastComm, currComm, csz), firstprivate(base), schedule(static)
+#pragma omp parallel for default(none) shared(pastComm, currComm), firstprivate(base), schedule(static)
 #endif
   for (GraphElem i = 0L; i < csz; i++) {
     pastComm[i] = i + base;
@@ -2575,10 +2578,10 @@ void fillRemoteCommunities(const DistGraph &dg, const int me, const int nprocs,
   for (int i = 0; i < nprocs; i++) {
       if (i != me) {
 #ifdef OMP_SCHEDULE_RUNTIME
-#pragma omp parallel for default(none), shared(rcsizes, rcomms, localCinfo, sinfo, rdispls), \
+#pragma omp parallel for , shared(rcsizes, rcomms, localCinfo, sinfo, rdispls), \
           firstprivate(i), schedule(runtime) /*, if(rcsizes[i] >= 1000) */
 #else
-#pragma omp parallel for default(none), shared(rcsizes, rcomms, localCinfo, sinfo, rdispls), \
+#pragma omp parallel for , shared(rcsizes, rcomms, localCinfo, sinfo, rdispls), \
           firstprivate(i), schedule(guided) /*, if(rcsizes[i] >= 1000) */
 #endif
           for (GraphElem j = 0; j < rcsizes[i]; j++) {
@@ -2649,10 +2652,10 @@ void fillRemoteCommunities(const DistGraph &dg, const int me, const int nprocs,
       if (i != me) {
 #if defined(USE_MPI_SENDRECV)
 #ifdef OMP_SCHEDULE_RUNTIME
-#pragma omp parallel for default(none), shared(rcsizes, rcomms, localCinfo, sinfo), \
+#pragma omp parallel for , shared(rcsizes, rcomms, localCinfo, sinfo), \
           firstprivate(i, rpos, base), schedule(runtime) /*, if(rcsizes[i] >= 1000)*/
 #else
-#pragma omp parallel for default(none), shared(rcsizes, rcomms, localCinfo, sinfo), \
+#pragma omp parallel for , shared(rcsizes, rcomms, localCinfo, sinfo), \
           firstprivate(i, rpos, base), schedule(guided) /*, if(rcsizes[i] >= 1000)*/
 #endif
           for (GraphElem j = 0; j < rcsizes[i]; j++) {
@@ -2679,10 +2682,10 @@ void fillRemoteCommunities(const DistGraph &dg, const int me, const int nprocs,
 #endif
 
 #ifdef OMP_SCHEDULE_RUNTIME
-#pragma omp parallel for default(none), shared(rcsizes, rcomms, localCinfo, sinfo), \
+#pragma omp parallel for shared(rcsizes, rcomms, localCinfo, sinfo), \
           firstprivate(i, rpos, base), schedule(runtime) /*, if(rcsizes[i] >= 1000)*/
 #else
-#pragma omp parallel for default(none), shared(rcsizes, rcomms, localCinfo, sinfo), \
+#pragma omp parallel for shared(rcsizes, rcomms, localCinfo, sinfo), \
           firstprivate(i, rpos, base), schedule(guided) /*, if(rcsizes[i] >= 1000)*/
 #endif
           for (GraphElem j = 0; j < rcsizes[i]; j++) {
@@ -2910,9 +2913,9 @@ void exchangeVertexReqs(const DistGraph &dg, size_t &ssz, size_t &rsz,
   PartnerArray parray(nprocs);
 
 #ifdef USE_OPENMP_LOCK
-#pragma omp parallel default(none), shared(dg, g, locks, parray, nv), firstprivate(me)
+#pragma omp parallel default(none) shared(dg, g, locks, parray)
 #else
-#pragma omp parallel default(none), shared(dg, g, parray, nv), firstprivate(me)
+#pragma omp parallel default(none) shared(dg, g, parray)
 #endif
   {
 #ifdef OMP_SCHEDULE_RUNTIME
