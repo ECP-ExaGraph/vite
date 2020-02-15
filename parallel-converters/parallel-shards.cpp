@@ -254,18 +254,20 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
               ifs.open((mpit->second[k]).c_str(), std::ifstream::in);
               
               // read the entire file into memory
-              std::string line;
+              std::string line, dummyline;
               int owner = -1;
               bool checkedFile = false;
               GraphElem past_v = -1;
-
-              while(!ifs.eof()) {
+              
+	      // drop the first line    
+	      std::getline(ifs, dummyline);
+                  
+              while( std::getline(ifs, line) ) {
 
                   GraphElem v0, v1, info;
                   GraphWeight w;
                   char ch;
 
-                  std::getline(ifs, line);
                   std::istringstream iss(line);
 
                   // read from current shard 
