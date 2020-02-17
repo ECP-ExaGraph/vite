@@ -150,6 +150,10 @@ void loadDistGraphMPIIO(int me, int nprocs, int ranks_per_node, DistGraph *&dg, 
 
     GraphElem localNumVertices = ((globalNumVertices * (me + 1)) / nprocs) - ((globalNumVertices * me) / nprocs); 
 
+    if (me == 0)
+	    std::cout << "Reading file of " << globalNumVertices 
+		    << " vertices and " << globalNumEdges << " edges." << std::endl;
+    
     // set to zero initially
     GraphElem localNumEdges = 0;
 
