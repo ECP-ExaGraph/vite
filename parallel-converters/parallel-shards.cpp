@@ -407,17 +407,16 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   numEdges = edgeList.size();
 
   // reduction on edge counts
-  MPI_Reduce(edgeCount.data(), edgeCountTmp.data(), globalNumVertices, 
+  MPI_Reduce(edgeCount.data(), edgeCountTmp.data(), globalNumVertices+1, 
           MPI_GRAPH_TYPE, MPI_SUM, 0, MPI_COMM_WORLD);
    
+  MPI_Barrier(MPI_COMM_WORLD);
+  
+  // local prefix sum
   if (rank == 0) {
-      edgeCount = edgeCountTmp;
-
-      // local prefix sum
-      for (GraphElem i = 1; i < globalNumVertices; i++)
-          edgeCount[i] += edgeCount[i-1];
-      
-      std::cout << "Redistributed edges and performed reduction on edge counts." << std::endl;
+	  edgeCount.clear();
+	  std::partial_sum(edgeCountTmp.begin(), edgeCountTmp.end(), edgeCount.begin());
+	  std::cout << "Redistributed edges and performed reduction on edge counts." << std::endl;
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
