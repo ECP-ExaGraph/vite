@@ -301,7 +301,6 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 
                       // edge count
                       edgeCount[v0+1]++; 
-                      edgeCount[v1+1]++; 
 
                       // search ghost owner and push it to outgoing edge list
                       auto iter = std::upper_bound(parts.begin(), parts.end(), v1);
@@ -377,7 +376,8 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   for (int p = 0; p < nprocs; p++)
       outEdges[p].clear();
   outEdges.clear();
-  
+
+  // assuming ssize (exchange size) is within INT bounds  
   MPI_Alltoall(ssize.data(), 1, MPI_INT, rsize.data(), 1, MPI_INT, MPI_COMM_WORLD);
   
   int rpos = 0;
@@ -399,6 +399,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   for (int p = 0; p < nprocs; p++) {
       for (GraphElem i = 0; i < rsize[p]; i++) {
           edgeList.push_back(rredata[j+i]);
+	  edgeCount[rredata[j+i].i_+1]++;
       }
       j += rsize[p];
   }
@@ -415,6 +416,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   // local prefix sum
   if (rank == 0) {
 	  edgeCount.clear();
+	  edgeCount.resize(globalNumVertices+1);
 	  std::partial_sum(edgeCountTmp.begin(), edgeCountTmp.end(), edgeCount.begin());
 	  std::cout << "Redistributed edges and performed reduction on edge counts." << std::endl;
   }

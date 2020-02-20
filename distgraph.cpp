@@ -179,7 +179,8 @@ void loadDistGraphMPIIO(int me, int nprocs, int ranks_per_node, DistGraph *&dg, 
     uint64_t tot_bytes=(localNumVertices+1)*sizeof(GraphElem);
     MPI_Offset offset = 2*sizeof(GraphElem) + ((globalNumVertices * me) / nprocs)*sizeof(GraphElem);
 
-    // printf("Process: %d, Edge-list size: %d, elements: %d offset: %ld, offset elements: %d\n", me, g.edgeListIndexes.size(),  tot_bytes/sizeof(GraphElem), offset, offset/sizeof(GraphElem) - 2); 
+//    if (me == 0)
+//	    printf("Process: %d, Edge-list size: %d, elements: %d offset: %ld, offset elements: %d\n", me, g.edgeListIndexes.size(),  tot_bytes/sizeof(GraphElem), offset, offset/sizeof(GraphElem) - 2); 
 
     if (tot_bytes<INT_MAX)
         MPI_File_read_at(fh, offset, &g.edgeListIndexes[0], tot_bytes, MPI_BYTE, &status);
@@ -200,8 +201,13 @@ void loadDistGraphMPIIO(int me, int nprocs, int ranks_per_node, DistGraph *&dg, 
                 chunk_bytes=tot_bytes-transf_bytes;
         } 
     }    
+    
+    if (me == 0)
+	    std::cout << "Read edgeListIndexes of size: " << g.edgeListIndexes.size() << std::endl;
 
     localNumEdges = g.edgeListIndexes[localNumVertices]-g.edgeListIndexes[0];
+    if (me == 0)
+	    std::cout << "Local number of edges: " << localNumEdges << std::endl;
 
     g.setNumEdges(localNumEdges);
 
@@ -228,7 +234,6 @@ void loadDistGraphMPIIO(int me, int nprocs, int ranks_per_node, DistGraph *&dg, 
                 chunk_bytes=tot_bytes-transf_bytes;
         } 
     }    
-
 
     MPI_File_close(&fh);
 
