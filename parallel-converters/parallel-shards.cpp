@@ -57,6 +57,7 @@
 #include <map>
 #include <unordered_map>
 #include <climits>
+#include <limits>
 
 #include "parallel-shards.hpp"
 
@@ -85,10 +86,9 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   MPI_File fh;
 
   /// Part 1: Read the file shards into edge list  
-
-  
   std::vector<GraphElemTuple> edgeList;
   std::map<GraphElem, std::vector<std::string> > fileProc;
+  std::vector<GraphElem> rangeFile;
 
   // make a list of the files and processes
   GraphElem proc = 0, target = 0;
@@ -123,17 +123,19 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 
   MPI_Barrier(MPI_COMM_WORLD);
   
-  if (rank == 0) {
-      std::cout << "Start reading " << proc << " files." << std::endl;  
-  }
-
   // read the files only if I can
   std::map<GraphElem, std::vector<std::string> >::iterator mpit = fileProc.find(rank);
-  GraphElem minmax_v[2] = {-1,0};
+  GraphElem max_v = -1;
 
   if (mpit != fileProc.end()) {
+      
+      const int numFiles = mpit->second.size();
+      rangeFile.resize(numFiles*2);
 
-      for (int k = 0; k < mpit->second.size(); k++) {
+      for (int k = 0; k < numFiles; k++) {
+
+	  rangeFile[k] = std::numeric_limits<GraphElem>::max();
+	  rangeFile[k+1] = -1;
 
           // retrieve lo/hi range from file name string
           std::string fileName_full = (mpit->second[k]).substr((mpit->second[k]).find_last_of("/") + 1);
@@ -148,15 +150,15 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
           std::ifstream ifs;
           ifs.open((mpit->second[k]).c_str(), std::ifstream::in);
 
-          std::string line;
-
-          while(!ifs.eof()) {
+          std::string line, dummyline;
+	  std::getline(ifs, dummyline);
+          
+	  while( std::getline(ifs, line) ) {
 
               GraphElem v0, v1, info;
               GraphWeight w;
               char ch;
 
-              std::getline(ifs, line);
               std::istringstream iss(line);
 
               // read from current shard 
@@ -176,11 +178,22 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 
               numEdges++;
 
-              // assuming vertices in each file are presorted
               // multiple files could have the *same* min/max vertex ID
-              if (minmax_v[0] == -1)
-                  minmax_v[0] = v0;
-              minmax_v[1] = v0;
+	      
+	      // max vertex for all files read
+	      if (v0 > max_v)
+		max_v = v0;
+	      if (v1 > max_v)
+		max_v = v1;
+	
+	      // minimum
+ 	      if (v0 < rangeFile[k]) 
+		rangeFile[k] = v0;
+
+      
+	      // maximum
+	      if (v0 > rangeFile[k+1])
+		rangeFile[k+1] = v0;
           }
 
           // close current shard
@@ -193,10 +206,6 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   // idle processes wait at the barrier
   MPI_Barrier(MPI_COMM_WORLD);
   
-  // get the maximum and minimum vertex ID per file/process
-  std::vector<GraphElem> minmax_vs(nprocs*2);
-  MPI_Alltoall(minmax_v, 2, MPI_GRAPH_TYPE, minmax_vs.data(), 2, MPI_GRAPH_TYPE, MPI_COMM_WORLD);
- 
   const int elprocs = fileProc.size();
   
   if (rank == 0) {
@@ -207,7 +216,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   GraphElem globalNumVertices = 0, globalNumEdges = 0;
   
   MPI_Allreduce(&numEdges, &globalNumEdges, 1, MPI_GRAPH_TYPE, MPI_SUM, MPI_COMM_WORLD);
-  MPI_Allreduce(&minmax_v[1], &globalNumVertices, 1, MPI_GRAPH_TYPE, MPI_MAX, MPI_COMM_WORLD);
+  MPI_Allreduce(&max_v, &globalNumVertices, 1, MPI_GRAPH_TYPE, MPI_MAX, MPI_COMM_WORLD);
   
   if (!indexOneBased)
       globalNumVertices += 1;
@@ -230,10 +239,12 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 
   std::vector<GraphElem> edgeCount(globalNumVertices+1), edgeCountTmp(globalNumVertices+1);
   std::vector<std::vector<GraphElemTuple>> outEdges(nprocs, std::vector<GraphElemTuple>());
-  int v = 0; // index for max|min_vs
 
   for (auto mpit = fileProc.begin(); mpit != fileProc.end(); ++mpit) {
-      for (int k = 0; k < mpit->second.size(); k++) {
+      
+      const int numFiles = mpit->second.size();
+      
+      for (int k = 0; k < numFiles; k++) {
 
           // retrieve lo/hi range from file name string
           std::string fileName_full = (mpit->second[k]).substr((mpit->second[k]).find_last_of("/") + 1);
@@ -247,7 +258,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
           std::cout << "File processing: " << fileName_full << "; Ranges: " << v_lo  << ", " << v_hi << std::endl;
 #endif
 
-          if ((parts[rank] >= minmax_vs[v]) && (parts[rank+1] <= minmax_vs[v+1])) {
+          if ((parts[rank] >= rangeFile[k]) && (parts[rank+1] <= rangeFile[k+1])) {
 
               // open file shard and start reading
               std::ifstream ifs;
@@ -288,28 +299,35 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
                   // normalize v0/v1 by adding lo/hi shard ID
                   v0 += v_lo;
                   v1 += v_hi;
-
+                      
                   // recompute owner when needed
                   if (past_v != v0) { 
                       auto iter = std::upper_bound(parts.begin(), parts.end(), v0);
                       owner = (iter - parts.begin() - 1);
                   }
 
-                  // populate edge list
-                  if (owner == rank) {
-                      edgeList.push_back({v0, v1, w});
+		  // populate edge list
+		  if (owner == rank) {
+			  if (v0 != v1) {
+				  edgeList.push_back({v0, v1, w});
 
-                      // edge count
-                      edgeCount[v0+1]++; 
+				  // edge count
+				  edgeCount[v0+1]++; 
+				  edgeCount[v1+1]++;
 
-                      // search ghost owner and push it to outgoing edge list
-                      auto iter = std::upper_bound(parts.begin(), parts.end(), v1);
-                      int ghost_owner = (iter - parts.begin() - 1);
-                      outEdges[ghost_owner].push_back({v1, v0, w});
+				  // search ghost owner and push it to outgoing edge list
+				  auto iter = std::upper_bound(parts.begin(), parts.end(), v1);
+				  int ghost_owner = (iter - parts.begin() - 1);
+				  outEdges[ghost_owner].push_back({v1, v0, w});
+			  }
+			  else {
+				  edgeList.push_back({v0, v1, w});
+				  edgeCount[v0+1]++; 
+			  }
 
-                      if (!checkedFile)
-                          checkedFile = true;
-                  }
+			  if (!checkedFile)
+				  checkedFile = true;
+		  }
 
                   // do I need to continue reading or am I done
                   if (checkedFile && (owner != rank))
@@ -321,8 +339,6 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
               // close current shard
               ifs.close();
           }
-
-          v += 2;
       }
   }
   
@@ -398,8 +414,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   GraphElem j = 0;
   for (int p = 0; p < nprocs; p++) {
       for (GraphElem i = 0; i < rsize[p]; i++) {
-          edgeList.push_back(rredata[j+i]);
-	  edgeCount[rredata[j+i].i_+1]++;
+	  edgeList.emplace_back(rredata[j+i]);
       }
       j += rsize[p];
   }
@@ -407,10 +422,13 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   // updated #edges
   numEdges = edgeList.size();
 
+  MPI_Barrier(MPI_COMM_WORLD);
+  
   // reduction on edge counts
   MPI_Reduce(edgeCount.data(), edgeCountTmp.data(), globalNumVertices+1, 
           MPI_GRAPH_TYPE, MPI_SUM, 0, MPI_COMM_WORLD);
-   
+  GraphElem totNumEdges = 0;
+  MPI_Reduce(&numEdges, &totNumEdges, 1, MPI_GRAPH_TYPE, MPI_SUM, 0, MPI_COMM_WORLD);  
   MPI_Barrier(MPI_COMM_WORLD);
   
   // local prefix sum
@@ -418,7 +436,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 	  edgeCount.clear();
 	  edgeCount.resize(globalNumVertices+1);
 	  std::partial_sum(edgeCountTmp.begin(), edgeCountTmp.end(), edgeCount.begin());
-	  std::cout << "Redistributed edges and performed reduction on edge counts." << std::endl;
+	  std::cout << "Redistributed edges (total: " << totNumEdges << ") and performed reduction on edge counts." << std::endl;
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
@@ -535,7 +553,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   if (rank == 0)
       std::cout << "Completed writing the binary file: " << fileOutPath << std::endl;      
 
-  minmax_vs.clear();
+  rangeFile.clear();
   edgeList.clear();
   edgeCount.clear();
   edgeCountTmp.clear();

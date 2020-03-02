@@ -113,6 +113,10 @@ int main(int argc, char *argv[])
  
   double t0, t1, t2, rt;
   t0 = mytimer();
+  
+  if (me == 0) {
+      std::cout << "Start reading " << numFiles << " files." << std::endl;  
+  }
 
   if (randomEdgeWeight)
       loadParallelFileShards(me, size, nAggrPEs, inputFileName, outputFileName, 
