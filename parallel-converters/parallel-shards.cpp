@@ -132,10 +132,10 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
       const int numFiles = mpit->second.size();
       rangeFile.resize(numFiles*2);
 
-      for (int k = 0; k < numFiles; k++) {
+      for (int k = 0, v = 0; k < numFiles; k++, v+=2) {
 
-	  rangeFile[k] = std::numeric_limits<GraphElem>::max();
-	  rangeFile[k+1] = -1;
+	  rangeFile[v] = std::numeric_limits<GraphElem>::max();
+	  rangeFile[v+1] = -1;
 
           // retrieve lo/hi range from file name string
           std::string fileName_full = (mpit->second[k]).substr((mpit->second[k]).find_last_of("/") + 1);
@@ -187,13 +187,13 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 		max_v = v1;
 	
 	      // minimum
- 	      if (v0 < rangeFile[k]) 
-		rangeFile[k] = v0;
+ 	      if (v0 < rangeFile[v]) 
+		rangeFile[v] = v0;
 
       
 	      // maximum
-	      if (v0 > rangeFile[k+1])
-		rangeFile[k+1] = v0;
+	      if (v0 > rangeFile[v+1])
+		rangeFile[v+1] = v0;
           }
 
           // close current shard
@@ -244,7 +244,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
       
       const int numFiles = mpit->second.size();
       
-      for (int k = 0; k < numFiles; k++) {
+      for (int k = 0, v = 0; k < numFiles; k++, v+=2) {
 
           // retrieve lo/hi range from file name string
           std::string fileName_full = (mpit->second[k]).substr((mpit->second[k]).find_last_of("/") + 1);
@@ -258,7 +258,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
           std::cout << "File processing: " << fileName_full << "; Ranges: " << v_lo  << ", " << v_hi << std::endl;
 #endif
 
-          if ((parts[rank] >= rangeFile[k]) && (parts[rank+1] <= rangeFile[k+1])) {
+          if ((parts[rank] >= rangeFile[v]) && (parts[rank+1] <= rangeFile[v+1])) {
 
               // open file shard and start reading
               std::ifstream ifs;
