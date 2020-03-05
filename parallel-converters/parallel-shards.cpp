@@ -126,16 +126,17 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   // read the files only if I can
   std::map<GraphElem, std::vector<std::string> >::iterator mpit = fileProc.find(rank);
   GraphElem max_v = -1;
+  int numFiles = 0;
 
   if (mpit != fileProc.end()) {
       
-      const int numFiles = mpit->second.size();
+      numFiles = mpit->second.size();
       rangeFile.resize(numFiles*2);
 
-      for (int k = 0, v = 0; k < numFiles; k++, v+=2) {
+      for (int k = 0; k < numFiles; k++) {
 
-	  rangeFile[v] = std::numeric_limits<GraphElem>::max();
-	  rangeFile[v+1] = -1;
+	  rangeFile[k*2] = std::numeric_limits<GraphElem>::max();
+	  rangeFile[k*2+1] = -1;
 
           // retrieve lo/hi range from file name string
           std::string fileName_full = (mpit->second[k]).substr((mpit->second[k]).find_last_of("/") + 1);
@@ -187,13 +188,13 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 		max_v = v1;
 	
 	      // minimum
- 	      if (v0 < rangeFile[v]) 
-		rangeFile[v] = v0;
+ 	      if (v0 < rangeFile[k*2]) 
+		rangeFile[k*2] = v0;
 
       
 	      // maximum
-	      if (v0 > rangeFile[v+1])
-		rangeFile[v+1] = v0;
+	      if (v0 > rangeFile[k*2+1])
+		rangeFile[k*2+1] = v0;
           }
 
           // close current shard
@@ -227,6 +228,24 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   }
   
   MPI_Barrier(MPI_COMM_WORLD);
+  
+  // alltoall to exchange low/high ranges for files
+  std::vector<int> rfcount(nprocs, 0), rfdispls(nprocs, 0);
+  int sfcount = numFiles*2;
+  MPI_Alltoall(&sfcount, 1, MPI_INT, rfcount.data(), 1, MPI_INT, MPI_COMM_WORLD);
+    
+  int rfpos = 0;
+  for (int p = 0; p < nprocs; p++) {
+      rfdispls[p] = rfpos;
+      rfpos += rfcount[p];
+  }
+
+  std::vector<GraphElem> fileRanges(rfpos);
+  MPI_Allgatherv(rangeFile.data(), numFiles*2, MPI_GRAPH_TYPE, fileRanges.data(), 
+		  rfcount.data(), rfdispls.data(), MPI_GRAPH_TYPE, MPI_COMM_WORLD);
+
+  rfdispls.clear();
+  rfcount.clear();
 
   /// Part 1.5: Read the files again, this time store the data
   std::vector<GraphElem> parts(nprocs+1); 
@@ -240,11 +259,12 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   std::vector<GraphElem> edgeCount(globalNumVertices+1), edgeCountTmp(globalNumVertices+1);
   std::vector<std::vector<GraphElemTuple>> outEdges(nprocs, std::vector<GraphElemTuple>());
 
+  GraphElem fidx = 0;
   for (auto mpit = fileProc.begin(); mpit != fileProc.end(); ++mpit) {
       
-      const int numFiles = mpit->second.size();
+      const int nfiles = mpit->second.size();
       
-      for (int k = 0, v = 0; k < numFiles; k++, v+=2) {
+      for (int k = 0; k < nfiles; k++) {
 
           // retrieve lo/hi range from file name string
           std::string fileName_full = (mpit->second[k]).substr((mpit->second[k]).find_last_of("/") + 1);
@@ -258,7 +278,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
           std::cout << "File processing: " << fileName_full << "; Ranges: " << v_lo  << ", " << v_hi << std::endl;
 #endif
 
-          if ((parts[rank] >= rangeFile[v]) && (parts[rank+1] <= rangeFile[v+1])) {
+          if ((fileRanges[(fidx+k)*2] >= parts[rank]) && (fileRanges[(fidx+k)*2+1] <= parts[rank+1])) {
 
               // open file shard and start reading
               std::ifstream ifs;
@@ -340,11 +360,13 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
               ifs.close();
           }
       }
+      fidx += nfiles;
   }
   
   MPI_Barrier(MPI_COMM_WORLD);
 
   fileProc.clear();
+  fileRanges.clear();
 
   /// Part 2: Assuming a vertex-based distribution, distribute edges and build edgeCount
  
