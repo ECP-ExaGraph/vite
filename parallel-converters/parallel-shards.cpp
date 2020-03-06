@@ -232,7 +232,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   // alltoall to exchange low/high ranges for files
   std::vector<int> rfcount(nprocs, 0), rfdispls(nprocs, 0);
   int sfcount = numFiles*2;
-  MPI_Alltoall(&sfcount, 1, MPI_INT, rfcount.data(), 1, MPI_INT, MPI_COMM_WORLD);
+  MPI_Allgather(&sfcount, 1, MPI_INT, rfcount.data(), 1, MPI_INT, MPI_COMM_WORLD);
     
   int rfpos = 0;
   for (int p = 0; p < nprocs; p++) {
@@ -276,9 +276,12 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
           GraphElem v_hi = (GraphElem)(std::stoi(fileName_right) - 1)*shardCount;
 #if defined(DEBUG_PRINTF)
           std::cout << "File processing: " << fileName_full << "; Ranges: " << v_lo  << ", " << v_hi << std::endl;
+	  if (rank == 0) {
+		std::cout << "[" << (fidx+k) << "]: " << fileRanges[(fidx+k)*2] << ", " << fileRanges[(fidx+k)*2+1] << std::endl; 
+	  }
 #endif
 
-          if ((fileRanges[(fidx+k)*2] >= parts[rank]) && (fileRanges[(fidx+k)*2+1] <= parts[rank+1])) {
+          if ((parts[rank] >= fileRanges[(fidx+k)*2]) || (parts[rank+1] <= fileRanges[(fidx+k)*2+1])) {
 
               // open file shard and start reading
               std::ifstream ifs;
@@ -574,7 +577,6 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
 
   if (rank == 0)
       std::cout << "Completed writing the binary file: " << fileOutPath << std::endl;      
-
   rangeFile.clear();
   edgeList.clear();
   edgeCount.clear();
