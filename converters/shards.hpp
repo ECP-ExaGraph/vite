@@ -58,8 +58,8 @@
 
 /// Pairwise read files between fileStartIndex and fileEndIndex and store 
 /// it into a single file, also convert to binary
-void loadFileShards(Graph *&g, const std::string &fileInShardsPath, const std::string &fileOutPath,
+void loadFileShards(Graph *&g, const std::string &fileInShardsPath, 
 	const int fileStartIndex, const int fileEndIndex, bool indexOneBased, 
-	Weight_t wtype = ABS_WEIGHT, GraphElem shardCount = 1000000);
+	Weight_t wtype = ORG_WEIGHT, GraphElem shardCount = 1000000);
 
 #endif // __LOAD_SHARDS_H

@@ -195,25 +195,25 @@ int main(int argc, char *argv[])
 	args.push_back(s);
       }
       if (args.size() != 3) {
-	std::cerr << "For sharded files, expecting (in this order): <shard-dump-file> <start-chunk> <end-chunk>" 
+	std::cerr << "For sharded files, expecting (in this order): <start-chunk> <end-chunk> <shard-count>" 
 		  << std::endl;
     	exit(EXIT_FAILURE);
       }
 
-      std::string shardDumpFile = args[0];
-      GraphElem startChunk = std::stoi(args[1]);
-      GraphElem endChunk = std::stoi(args[2]);
+      GraphElem startChunk = std::stoi(args[0]);
+      GraphElem endChunk = std::stoi(args[1]);
+      GraphElem shardCount = std::stoi(args[2]);
 
       args.clear();
 
       if (randomEdgeWeight)
-	  loadFileShards(g, inputFileName, shardDumpFile, startChunk, endChunk, indexOneBased, RND_WEIGHT);
+	  loadFileShards(g, inputFileName, startChunk, endChunk, indexOneBased, RND_WEIGHT, shardCount);
       else if (makeWeightsOne)
-	  loadFileShards(g, inputFileName, shardDumpFile, startChunk, endChunk, indexOneBased, ONE_WEIGHT);
+	  loadFileShards(g, inputFileName, startChunk, endChunk, indexOneBased, ONE_WEIGHT, shardCount);
       else if (origEdgeWeight) 
-	  loadFileShards(g, inputFileName, shardDumpFile, startChunk, endChunk, indexOneBased, ORG_WEIGHT);
+	  loadFileShards(g, inputFileName, startChunk, endChunk, indexOneBased, ORG_WEIGHT, shardCount);
       else
-	  loadFileShards(g, inputFileName, shardDumpFile, startChunk, endChunk, indexOneBased, ABS_WEIGHT);
+	  loadFileShards(g, inputFileName, startChunk, endChunk, indexOneBased, ABS_WEIGHT, shardCount);
   }
   else {
       std::cerr << "Format not specified correctly!" << std::endl;

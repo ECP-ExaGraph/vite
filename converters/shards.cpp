@@ -68,9 +68,9 @@
 /// We expect the shards to contain the 'upper triangle' of the adjacency...during binary 
 /// conversion, we consider the data to be an undirected graph, and store both combinations of edge pairs
 
-void loadFileShards(Graph *&g, const std::string &fileInShardsPath, const std::string &fileOutPath,
-	const int fileStartIndex, const int fileEndIndex, bool indexOneBased, 
-	Weight_t wtype, GraphElem shardCount)
+void loadFileShards(Graph *&g, const std::string &fileInShardsPath, 
+		const int fileStartIndex, const int fileEndIndex, bool indexOneBased, 
+		Weight_t wtype, GraphElem shardCount)
 {
   double t0, t1;
   t0 = mytimer();
@@ -80,16 +80,9 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath, const std::s
   assert(fileEndIndex >= fileStartIndex);
   
   GraphElem numFiles = 0, maxVertex = -1, numEdges = 0, numVertices;
+  std::vector<GraphElemTuple> edgeList;
 
-  /// Part 1: Read the file shards and pour contents on a single file   
-  // open output file for pouring shard data 
-  std::ofstream ofs;
-  ofs.open(fileOutPath.c_str(), std::ofstream::out | std::ofstream::app);
-  if (!ofs) {
-    std::cerr << "Error accessing output file: " << fileOutPath << std::endl;
-    exit(EXIT_FAILURE);
-  }
-
+  /// Part 1: Read the file shards 
   // start reading 
   for (GraphElem ci = fileStartIndex; ci < fileEndIndex + 1; ci++) {
 	  for (GraphElem cj = fileStartIndex; cj < fileEndIndex + 1; cj++) {
@@ -112,7 +105,8 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath, const std::s
 		  numFiles++;
 
 		  // start reading shard
-		  std::string line;
+		  std::string line, dummyline;
+		  std::getline(ifs, dummyline);
 
 		  while(std::getline(ifs, line)) {
 
@@ -137,18 +131,22 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath, const std::s
 			  v0 += v_lo;
 			  v1 += v_hi;
 
-			  // write to the output file
-			  if (wtype == ORG_WEIGHT)
-				  ofs << v0 << " " << v1 << " " << w << std::endl;
-			  else
-				  ofs << v0 << " " << v1 << std::endl;
+			  if (wtype == ONE_WEIGHT)
+				  w = 1.0;
+
+			  if (wtype == RND_WEIGHT)
+				  w = (GraphWeight)genRandom(RANDOM_MIN_WEIGHT, RANDOM_MAX_WEIGHT);
+
+			  if (wtype == ABS_WEIGHT)
+				  w = std::fabs(w);
+
+			  edgeList.push_back({v0, v1, w});
+	  		  edgeList.push_back({v1, v0, w});
 
 			  if (v0 > maxVertex)
 				  maxVertex = v0;
 			  if (v1 > maxVertex)
 				  maxVertex = v1;
-
-			  numEdges++;
 		  }
 
 		  // close current shard
@@ -161,55 +159,21 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath, const std::s
   else
 	numVertices = maxVertex;
 	
-  double t2 = mytimer();  
-  
-  std::cout << "Read " << numFiles << " file shards (undirected data), and poured output into: " 
-      << fileOutPath << ", #Vertices: " << numVertices << ", #Edges: " << numEdges << std::endl;
-  std::cout << "Time taken to read shards and write into a file: " << (t2 - t0) << " secs." << std::endl;
-
-  ofs.close();
-  
-  /// Part 2: Read the large file we just created and generate binary file    
-
-  // read the data
-  std::ifstream ifs;
-  std::string line;
-  ifs.open(fileOutPath.c_str(), std::ifstream::in);
-
-  std::vector<GraphElem> edgeCount(numVertices + 1);
-  std::vector<GraphElemTuple> edgeList;
-
-  for (GraphElem i = 0; i < numEdges; i++) {
-	  GraphElem v0, v1;
-	  GraphWeight w;
-
-	  std::getline(ifs, line);
-	  std::istringstream iss(line);
-
-	  if (wtype == ORG_WEIGHT)
-		  iss >> v0 >> v1 >> w;
-	  else
-		  iss >> v0 >> v1;
-
-	  if (wtype == ONE_WEIGHT)
-		  w = 1.0;
-	  
-          if (wtype == RND_WEIGHT)
-		  w = (GraphWeight)genRandom(RANDOM_MIN_WEIGHT, RANDOM_MAX_WEIGHT);
-    
-          if (wtype == ABS_WEIGHT)
-              w = std::fabs(w);
-
-	  edgeList.push_back({v0, v1, w});
-	  edgeList.push_back({v1, v0, w});
-
-	  edgeCount[v0+1]++;
-	  edgeCount[v1+1]++;
-  }
-
   numEdges = edgeList.size();
 
-  ifs.close();
+  double t2 = mytimer();  
+  
+  std::cout << "Read " << numFiles << " file shards (undirected data)." << std::endl;
+  std::cout << "Total #vertices: " << numVertices << " and #edges: " << numEdges << std::endl;
+  std::cout << "Time taken for serial file I/O: " << (t2 - t0) << " secs." << std::endl;
+
+  /// Part 2: perform edge counts and generate the binary file    
+
+  std::vector<GraphElem> edgeCount(numVertices + 1, 0);
+  for (GraphElem i = 0; i < numEdges; i++) {
+	  edgeCount[edgeList[i].i_+1]++;
+	  edgeCount[edgeList[i].j_+1]++;
+  }
 
   g = new Graph(numVertices, numEdges);
   processGraphData(*g, edgeCount, edgeList, numVertices, numEdges);
