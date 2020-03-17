@@ -314,7 +314,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
                   else
                       iss >> v0 >> ch >> v1 >> ch >> info;
 
-                  if (indexOneBased) {
+                  if (!indexOneBased) {
                       v0--; 
                       v1--;
                   }
