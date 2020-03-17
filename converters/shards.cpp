@@ -79,7 +79,7 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath,
   assert(fileEndIndex >= 0);
   assert(fileEndIndex >= fileStartIndex);
   
-  GraphElem numFiles = 0, maxVertex = -1, numEdges = 0, numVertices;
+  GraphElem numFiles = 0, maxVertex = -1, numEdges, numVertices;
   std::vector<GraphElemTuple> edgeList;
 
   /// Part 1: Read the file shards 
@@ -122,7 +122,7 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath,
 			  else
 				  iss >> v0 >> ch >> v1 >> ch >> info;
 
-			  if (indexOneBased) {
+			  if (!indexOneBased) {
 				  v0--; 
 				  v1--;
 			  }
@@ -180,5 +180,5 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath,
 
   t1 = mytimer();  
 
-  std::cout << "Total processing time (R/W shards + binary generation): " << (t1 - t0) << " secs." << std::endl;
+  std::cout << "Total time (processing shards + binary generation): " << (t1 - t2) << " secs." << std::endl;
 } // loadFileShards
