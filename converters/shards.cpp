@@ -117,7 +117,7 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath,
 			  std::istringstream iss(line);
 
 			  // read from current shard 
-			  if (wtype == ORG_WEIGHT)
+			  if (wtype == ORG_WEIGHT || wtype == ABS_WEIGHT)
 				  iss >> v0 >> ch >> v1 >> ch >> info >> ch >> w;
 			  else
 				  iss >> v0 >> ch >> v1 >> ch >> info;
