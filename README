@@ -205,6 +205,7 @@ Possible options (can be combined):
                    connecting vertices across processes. Currently, the maximum number
                    of randomly added edges to RGG cannot exceed INT_MAX (there is no 
                    check to determine this, so exercise caution).
+15. -p           : Run a single phase of Louvain. 
 
 *Note: Option to update inactive vertices percentage is defined as
 macro ET_CUTOFF in louvain.hpp, and the default is 2%.
