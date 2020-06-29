@@ -110,9 +110,12 @@ void loadDistGraphMPIIO(int me, int nprocs, int ranks_per_node,
         DistGraph *&dg, std::string& fileName);
 void loadDistGraphMPIIOBalanced(int me, int nprocs, int ranks_per_node, 
         DistGraph *&dg, std::string& fileName);
+
 // graph generation
-void generateInMemGraph(int rank, int nprocs, DistGraph *&dg, GraphElem nv, int randomEdgePercent);
-DistGraph* generateRGG(int rank, int nprocs, GraphElem nv, GraphWeight rn, int randomEdgePercent);
+void generateInMemGraph(int rank, int nprocs, DistGraph *&dg, GraphElem nv, int randomEdgePercent, std::string fileOut);
+DistGraph* generateRGG(int rank, int nprocs, GraphElem nv, GraphWeight rn, int randomEdgePercent, std::string fileOut);
+
+void writeGraph(int me, int nprocs, DistGraph *&dg, std::vector<GraphElem>& edgeCount, std::string &fileName);
 
 inline DistGraph::DistGraph()
   : totalNumVertices(0), totalNumEdges(0), localGraph(NULL), parts(NULL)
@@ -153,7 +156,12 @@ inline void DistGraph::printStats()
     Graph &g = this->getLocalGraph(); // local graph 
     const GraphElem lne = g.getNumEdges(); // local #edges
     const GraphElem nv = this->getTotalNumVertices(); // global #vertices
-    const GraphElem ne = this->getTotalNumEdges(); // global #edges
+    // TODO FIXME currently totalNumEdges variable stores local
+    // number of edges and not total, keep a separate variable
+    //const GraphElem ne = this->getTotalNumEdges(); // global #edges
+    // compute total number of edges
+    GraphElem ne = 0;
+    MPI_Allreduce(&lne, &ne, 1, MPI_GRAPH_TYPE, MPI_SUM, MPI_COMM_WORLD);
 
     MPI_Reduce(&lne, &sumdeg, 1, MPI_GRAPH_TYPE, MPI_SUM, 0, MPI_COMM_WORLD);
     MPI_Reduce(&lne, &maxdeg, 1, MPI_GRAPH_TYPE, MPI_MAX, 0, MPI_COMM_WORLD);

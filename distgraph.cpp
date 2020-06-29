@@ -78,7 +78,7 @@ void balanceEdges(int nprocs, std::string& fileName, std::vector<GraphElem>& mbi
     fp = fopen(fileName.c_str(), "rb");
     if (fp == NULL) {
         std::cout<< " Error opening file! " << std::endl;
-        return;
+        MPI_Abort(MPI_COMM_WORLD, -99);
     }
 
     // read nv and ne
@@ -143,6 +143,7 @@ void loadDistGraphMPIIO(int me, int nprocs, int ranks_per_node, DistGraph *&dg, 
 
     if (file_open_error != MPI_SUCCESS) {
         std::cout<< " Error opening file! " << std::endl;
+        MPI_Abort(MPI_COMM_WORLD, -99);
     }
 
     MPI_File_read_all(fh,&globalNumVertices,sizeof(GraphElem), MPI_BYTE, &status);
@@ -202,12 +203,15 @@ void loadDistGraphMPIIO(int me, int nprocs, int ranks_per_node, DistGraph *&dg, 
         } 
     }    
     
+#if defined(DEBUG_PRINTF)
     if (me == 0)
 	    std::cout << "Read edgeListIndexes of size: " << g.edgeListIndexes.size() << std::endl;
-
+#endif
     localNumEdges = g.edgeListIndexes[localNumVertices]-g.edgeListIndexes[0];
+#if defined(DEBUG_PRINTF)
     if (me == 0)
 	    std::cout << "Local number of edges: " << localNumEdges << std::endl;
+#endif
 
     g.setNumEdges(localNumEdges);
 
@@ -287,6 +291,7 @@ void loadDistGraphMPIIOBalanced(int me, int nprocs, int ranks_per_node, DistGrap
 
     if (file_open_error != MPI_SUCCESS) {
         std::cout<< " Error opening file! " << std::endl;
+        MPI_Abort(MPI_COMM_WORLD, -99);
     }
 
     MPI_File_read_all(fh,&globalNumVertices,sizeof(GraphElem), MPI_BYTE, &status);
@@ -383,7 +388,8 @@ void loadDistGraphMPIIOBalanced(int me, int nprocs, int ranks_per_node, DistGrap
 
 // generate graph
 // 1D vertex distribution
-void generateInMemGraph(int rank, int nprocs, DistGraph *&dg, GraphElem nv, int randomEdgePercent)
+void generateInMemGraph(int rank, int nprocs, DistGraph *&dg, GraphElem nv, 
+        int randomEdgePercent, std::string fileOut="")
 {
     GraphWeight rn;
 
@@ -395,7 +401,7 @@ void generateInMemGraph(int rank, int nprocs, DistGraph *&dg, GraphElem nv, int 
     assert(((GraphWeight)1.0/(GraphWeight)nprocs) > rn);
 
     // generate distributed RGG in memory
-    dg = generateRGG(rank, nprocs, nv, rn, randomEdgePercent);
+    dg = generateRGG(rank, nprocs, nv, rn, randomEdgePercent, fileOut);
 
     MPI_Barrier(MPI_COMM_WORLD);
 }
@@ -403,7 +409,8 @@ void generateInMemGraph(int rank, int nprocs, DistGraph *&dg, GraphElem nv, int 
 // create RGG and returns Graph
 // TODO FIXME use OpenMP wherever possible
 // use Euclidean distance as edge weight
-DistGraph* generateRGG(int rank, int nprocs, GraphElem nv, GraphWeight rn, int randomEdgePercent)
+DistGraph* generateRGG(int rank, int nprocs, GraphElem nv, GraphWeight rn, 
+        int randomEdgePercent, std::string fileOut="")
 {
     int up, down;
 
@@ -487,7 +494,12 @@ DistGraph* generateRGG(int rank, int nprocs, GraphElem nv, GraphWeight rn, int r
         MPI_Barrier(MPI_COMM_WORLD);
     }
 #endif
-
+    
+    // create an global edge count vector
+    std::vector<GraphElem> edgeCount;
+    if (!fileOut.empty())
+        edgeCount.resize(nv+1);
+ 
     double et = MPI_Wtime();
     double tt = et - st;
     double tot_tt = 0.0;
@@ -540,6 +552,11 @@ DistGraph* generateRGG(int rank, int nprocs, GraphElem nv, GraphWeight rn, int r
 
                 g.edgeListIndexes[i+1]++;
                 g.edgeListIndexes[j+1]++;
+
+                if (!fileOut.empty()) {
+                    edgeCount[g_i+1]++;
+                    edgeCount[g_j+1]++;
+                }
             }
         }
     }
@@ -585,6 +602,8 @@ DistGraph* generateRGG(int rank, int nprocs, GraphElem nv, GraphWeight rn, int r
                         numEdges++;
 #endif
                         g.edgeListIndexes[i+1]++;
+                        if (!fileOut.empty())
+                            edgeCount[g_i+1]++;
                     }
                 }
             }
@@ -611,6 +630,8 @@ DistGraph* generateRGG(int rank, int nprocs, GraphElem nv, GraphWeight rn, int r
                         numEdges++;
 #endif
                         g.edgeListIndexes[i+1]++;
+                        if (!fileOut.empty())
+                            edgeCount[g_i+1]++;
                     }
                 }
             }
@@ -657,7 +678,9 @@ DistGraph* generateRGG(int rank, int nprocs, GraphElem nv, GraphWeight rn, int r
             numEdges++;
 #endif           
             edgeList.emplace_back(recvdn_edges[i].ij_[0], recvdn_edges[i].ij_[1], recvdn_edges[i].w_);
-            g.edgeListIndexes[recvdn_edges[i].ij_[0]+1]++; 
+            g.edgeListIndexes[recvdn_edges[i].ij_[0]+1]++;
+            if (!fileOut.empty())
+                edgeCount[dg->localToGlobal(recvdn_edges[i].ij_[0], rank)+1]++;
         } 
     }
 
@@ -668,7 +691,9 @@ DistGraph* generateRGG(int rank, int nprocs, GraphElem nv, GraphWeight rn, int r
             numEdges++;
 #endif
             edgeList.emplace_back(recvup_edges[i].ij_[0], recvup_edges[i].ij_[1], recvup_edges[i].w_);
-            g.edgeListIndexes[recvup_edges[i].ij_[0]+1]++; 
+            g.edgeListIndexes[recvup_edges[i].ij_[0]+1]++;
+            if (!fileOut.empty())
+                edgeCount[dg->localToGlobal(recvup_edges[i].ij_[0], rank)+1]++;
         }
     }
 
@@ -793,6 +818,8 @@ DistGraph* generateRGG(int rank, int nprocs, GraphElem nv, GraphWeight rn, int r
 #endif                       
                 edgeList.emplace_back(i, g_j, weight);
                 g.edgeListIndexes[i+1]++;
+                if (!fileOut.empty())
+                    edgeCount[g_i+1]++;
             }
         }
 
@@ -854,16 +881,18 @@ DistGraph* generateRGG(int rank, int nprocs, GraphElem nv, GraphWeight rn, int r
             numEdges++;
 #endif
             edgeList.emplace_back(recvrand_edges[i].ij_[0], recvrand_edges[i].ij_[1], recvrand_edges[i].w_);
-            g.edgeListIndexes[recvrand_edges[i].ij_[0]+1]++; 
+            g.edgeListIndexes[recvrand_edges[i].ij_[0]+1]++;
+            if (!fileOut.empty())
+                edgeCount[dg->localToGlobal(recvrand_edges[i].ij_[0], rank)+1]++;
         }
 
         sendrand_edges.clear();
         recvrand_edges.clear();
         rand_edges.clear();
     } // end of (conditional) random edges addition
-
+   
     MPI_Barrier(MPI_COMM_WORLD);
-
+ 
     // set graph edge indices and prepare
     // graph data structure
 
@@ -928,6 +957,14 @@ DistGraph* generateRGG(int rank, int nprocs, GraphElem nv, GraphWeight rn, int r
     const GraphElem tne = dg->getTotalNumEdges();
     assert(tne == tot_numEdges);
 #endif
+    
+    // write file
+    if (!fileOut.empty()) {
+        writeGraph(rank, nprocs, dg, edgeCount, fileOut);
+        if (rank == 0)
+            std::cout << "Written binary file: " << fileOut << std::endl;
+    } 
+
     edgeList.clear();
 
     X.clear();
@@ -943,4 +980,85 @@ DistGraph* generateRGG(int rank, int nprocs, GraphElem nv, GraphWeight rn, int r
     recvdn_edges.clear();
 
     return dg;
+}
+
+// write graph in CSR binary format
+void writeGraph(int me, int nprocs, DistGraph *&dg, std::vector<GraphElem>& edgeCount, std::string &fileName)
+{
+    MPI_File fh;
+    MPI_Status status;
+    GraphElem globalNumEdges = 0, globalNumVertices = dg->getTotalNumVertices();
+    
+    Graph &g = dg->getLocalGraph(); 
+    GraphElem my_nedges = g.edgeList.size();     
+    MPI_Allreduce(&my_nedges, &globalNumEdges, 1, MPI_GRAPH_TYPE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, edgeCount.data(), globalNumVertices+1, MPI_GRAPH_TYPE, MPI_SUM, MPI_COMM_WORLD);
+    std::vector<GraphElem> ecTmp(globalNumVertices+1);
+    std::partial_sum(edgeCount.begin(), edgeCount.end(), ecTmp.begin());
+    
+    int file_open_error = MPI_File_open(MPI_COMM_WORLD, fileName.c_str(), 
+          MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL, &fh); 
+
+    if (file_open_error != MPI_SUCCESS) {
+        std::cout<< " Error opening output binary file for storing graph data! " << std::endl;
+        MPI_Abort(MPI_COMM_WORLD, -99);
+    }
+
+    // output file stores #vertices and #edges 
+    if (me == 0) {
+        MPI_File_write_at(fh, 0, &globalNumVertices, sizeof(GraphElem), MPI_BYTE, &status);
+        MPI_File_write_at(fh, sizeof(GraphElem), &globalNumEdges, sizeof(GraphElem), MPI_BYTE, &status);
+
+        uint64_t tot_bytes=(globalNumVertices+1)*sizeof(GraphElem);
+        MPI_Offset offset = 2*sizeof(GraphElem);
+
+        if (tot_bytes<INT_MAX)
+            MPI_File_write_at(fh, offset, ecTmp.data(), tot_bytes, MPI_BYTE, &status);
+        else {
+            int chunk_bytes=INT_MAX;
+            uint8_t *curr_pointer = (uint8_t*) ecTmp.data();
+            uint64_t transf_bytes=0;
+
+            while (transf_bytes<tot_bytes)
+            {
+                MPI_File_write_at(fh, offset, curr_pointer, chunk_bytes, MPI_BYTE, &status);
+                transf_bytes+=chunk_bytes;
+                offset+=chunk_bytes;
+                curr_pointer+=chunk_bytes;
+
+                if (tot_bytes-transf_bytes<INT_MAX)
+                    chunk_bytes=tot_bytes-transf_bytes;
+            } 
+        }    
+    }
+    
+    MPI_Barrier(MPI_COMM_WORLD);
+     
+    GraphElem hi_idx = ((globalNumVertices * (me + 1)) / nprocs);
+    GraphElem lo_idx = ((globalNumVertices * me) / nprocs);
+
+    GraphElem localNumEdges = ecTmp[hi_idx]-ecTmp[lo_idx];
+    uint64_t tot_bytes=localNumEdges*(sizeof(Edge));
+    MPI_Offset offset = 2*sizeof(GraphElem) + (globalNumVertices+1)*sizeof(GraphElem) + ecTmp[lo_idx]*(sizeof(Edge));
+
+    if (tot_bytes<INT_MAX)
+        MPI_File_write_at(fh, offset, &g.edgeList[0], tot_bytes, MPI_BYTE, &status);
+    else {
+        int chunk_bytes=INT_MAX;
+        uint8_t *curr_pointer = (uint8_t*)&g.edgeList[0];
+        uint64_t transf_bytes=0;
+
+        while (transf_bytes<tot_bytes)
+        {
+            MPI_File_write_at(fh, offset, curr_pointer, chunk_bytes, MPI_BYTE, &status);
+            transf_bytes+=chunk_bytes;
+            offset+=chunk_bytes;
+            curr_pointer+=chunk_bytes;
+
+            if (tot_bytes-transf_bytes<INT_MAX)
+                chunk_bytes=tot_bytes-transf_bytes;
+        } 
+    }    
+
+    MPI_File_close(&fh);
 }

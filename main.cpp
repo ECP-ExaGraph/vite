@@ -73,7 +73,7 @@
 std::ofstream ofs;
 std::ofstream ofcks;
 
-static std::string inputFileName;
+static std::string inputFileName, outputFileName;
 static std::string groundTruthFileName;
 static int me, nprocs;
 
@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
 
   // load the input data file and distribute data   
   if (generateGraph) {
-      generateInMemGraph(me, nprocs, dg, numVerticesGenGraph, randomEdgePercent);
+      generateInMemGraph(me, nprocs, dg, numVerticesGenGraph, randomEdgePercent, outputFileName);
   }
   else {
       if (readBalanced)
@@ -584,7 +584,7 @@ void parseCommandLine(const int argc, char * const argv[])
 {
   int ret;
 
-  while ((ret = getopt(argc, argv, "f:bc:od:r:t:a:ig:zpn:e:")) != -1) {
+  while ((ret = getopt(argc, argv, "f:bc:od:r:t:a:ig:zpn:e:s:")) != -1) {
     switch (ret) {
     case 'f':
       inputFileName.assign(optarg);
@@ -633,10 +633,17 @@ void parseCommandLine(const int argc, char * const argv[])
     case 'e':
       randomEdgePercent = atoi(optarg);
       break;
+    case 's':
+      outputFileName.assign(optarg);
+      break;
     default:
       assert(0 && "Should not reach here!!");
       break;
     }
+  }
+  
+  if (me == 0 && !generateGraph && !outputFileName.empty()) {
+      std::cout << "Passing an output file has no effect for real-world graphs." << std::endl;
   }
 
   if (me == 0 && earlyTerm && (ETType < 1 || ETType > 4)) {
@@ -648,12 +655,12 @@ void parseCommandLine(const int argc, char * const argv[])
       std::cerr << "early-term-alpha must be between 0 and 1: -t 2 -a 0.5" << std::endl;
       MPI_Abort(MPI_COMM_WORLD, -99);
   }
-  
+   
   if (me == 0 && !generateGraph && inputFileName.empty()) {
       std::cerr << "Must specify a binary file name with -f" << std::endl;
       MPI_Abort(MPI_COMM_WORLD, -99);
   }
-   
+
   if (me == 0 && compareCommunities && groundTruthFileName.empty()) {
       std::cerr << "Must specify a ground-truth file name with -g" << std::endl;
       MPI_Abort(MPI_COMM_WORLD, -99);

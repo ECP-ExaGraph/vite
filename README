@@ -150,62 +150,77 @@ file formats: convert the input file to binary format using fileConvert.
 2. Run distributed parallel Louvain algorithm (graphClustering binary) 
 using the binary file created in Step #0:
 
+E.g., pass a binary file using "-f" option and include other heuristics: 
 mpiexec -n 2 bin/./graphClustering -c -i -f karate.bin
+
+E.g., generate a random geometric graph by passing #vertices=64:
+mpiexec -n 2 bin/./graphClustering -n 64
+
+E.g., generate a random geometric graph by passing #vertices=64
+and store the resultant binary graph:
+mpiexec -n 2 bin/./graphClustering -n 64 -s rgg64.bin
+
+E.g., read a previously generated random geometric binary graph:
+mpiexec -n 2 bin/./graphClustering -f rgg64.bin
+
 
 Possible options (can be combined):
 
-1. -c <ncolors>  : Enable coloring, adjacent vertices are processed
+1. -f <input>    : Input real-world binary file (read #1 above).
+2. -c <ncolors>  : Enable coloring, adjacent vertices are processed
                    in different order. Synchronization happens once
                    per <ncolors>.
-2. -d <ncolors>  : Enable coloring, adjacent vertices are processes
+3. -d <ncolors>  : Enable coloring, adjacent vertices are processes
                    in different order. No synchronization.
-3. -i            : Threshold cycling, threshold changes dynamically
+4. -i            : Threshold cycling, threshold changes dynamically
                    in every phase of Louvain algorithm.
-4. -t 1          : If a vertex is in the same community for past 3
+5. -t 1          : If a vertex is in the same community for past 3
                    iterations, then consider it inactive.
-5. -t 3          : If a vertex is in the same community for past 3
+6. -t 3          : If a vertex is in the same community for past 3
                    iterations, then consider it inactive. Also,
                    adds a communication step to gather inactive 
                    vertices and terminate Louvain if >= 90% vertices
                    at an iteration are inactive.
-6. -t 2 -a <0-1> : Early termination* using probability alpha.
-7. -t 4 -a <0-1> : Early termination* using probability alpha. Also,
+7. -t 2 -a <0-1> : Early termination* using probability alpha.
+8. -t 4 -a <0-1> : Early termination* using probability alpha. Also,
                    adds a communication step to gather inactive 
                    vertices and terminate Louvain if >= 90% vertices
                    at an iteration are inactive.
-8. -b            : Only valid for real-world inputs. Attempts to 
+9. -b            : Only valid for real-world inputs. Attempts to 
                    distribute approximately equal number of edges among 
                    processes. Irregular number of vertices owned by a 
                    particular process. Increases the distributed graph 
                    creation time due to serial overheads, but may 
                    significantly improve the overall execution time.
-9. -o            : Output communities into a file. This option will result 
+10. -o           : Output communities into a file. This option will result 
                    in Vite dumping the communities (community-per-vertex in 
                    each line, total number of lines == number of vertices) 
                    in a text file named <input-binary-file>.communities in 
                    the same path as the input binary file.
-10. -r <nranks>  : This is used to control the number of aggregators in MPI 
+11. -r <nranks>  : This is used to control the number of aggregators in MPI 
                    I/O and is meaningful when an input binary graph file is 
                    passed with option "-f".
                    naggr := (nranks > 1) ? (nprocs/nranks) : nranks;
-11. -g <gfile>   : Pass a ground truth file for community comparison. We 
+12. -g <gfile>   : Pass a ground truth file for community comparison. We 
                    expect the ground truth file to contain N lines (equal to 
                    the total #vertices in the graph), while each line containing 
                    a distinct vertex ID and associated community ID, separated by 
                    a space or tab. Ground truth community comparison is performed
                    in a single node, and it uses OpenMP to parallelize. It may take
                    a substantial amount of time for large files.
-12. -z           : Only applicable if "-g <gfile>" option is passed. This tells us
+13. -z           : Only applicable if "-g <gfile>" option is passed. This tells us
                    that the passed ground truth file is 1-based. If this option is
                    not passed, we assume the ground truth to the 0-based.
-13. -n <|V|>     : Generate graph in memory (uses a parallel Random Geometric Graph
+14. -n <|V|>     : Generate graph in memory (uses a parallel Random Geometric Graph
                    generator).
-14. -e <%>       : Used in conjunction with the "-n <>" option to generate RGG. This
+15. -e <%>       : Used in conjunction with the "-n <>" option to generate RGG. This
                    option tells the percentage of edges to be added, randomly 
                    connecting vertices across processes. Currently, the maximum number
                    of randomly added edges to RGG cannot exceed INT_MAX (there is no 
                    check to determine this, so exercise caution).
-15. -p           : Run a single phase of Louvain. 
+16. -p           : Run a single phase of Louvain.
+17. -s <output>  : Only applicable to the generated graphs (for e.g., -n <#vertices>),
+                   output is a binary file as per the output file path.
 
 *Note: Option to update inactive vertices percentage is defined as
 macro ET_CUTOFF in louvain.hpp, and the default is 2%.
