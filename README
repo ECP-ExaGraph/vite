@@ -213,13 +213,13 @@ Possible options (can be combined):
                    not passed, we assume the ground truth to the 0-based.
 14. -n <|V|>     : Generate graph in memory (uses a parallel Random Geometric Graph
                    generator).
-15. -e <%>       : Used in conjunction with the "-n <>" option to generate RGG. This
-                   option tells the percentage of edges to be added, randomly 
+15. -e <%>       : Used in conjunction with the "-n <|V|>" option to generate RGG. 
+                   This option tells the percentage of edges to be added, randomly 
                    connecting vertices across processes. Currently, the maximum number
                    of randomly added edges to RGG cannot exceed INT_MAX (there is no 
                    check to determine this, so exercise caution).
 16. -p           : Run a single phase of Louvain.
-17. -s <output>  : Only applicable to the generated graphs (for e.g., -n <#vertices>),
+17. -s <output>  : Only applicable to the generated graphs (for e.g., -n <|V|>),
                    output is a binary file as per the output file path.
 18: -j           : Just process (read or generate) the graph and exit without running
                    community detection.
