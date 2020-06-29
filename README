@@ -221,6 +221,8 @@ Possible options (can be combined):
 16. -p           : Run a single phase of Louvain.
 17. -s <output>  : Only applicable to the generated graphs (for e.g., -n <#vertices>),
                    output is a binary file as per the output file path.
+18: -j           : Just process (read or generate) the graph and exit without running
+                   community detection.
 
 *Note: Option to update inactive vertices percentage is defined as
 macro ET_CUTOFF in louvain.hpp, and the default is 2%.
