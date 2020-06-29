@@ -84,6 +84,7 @@ static bool   vertexOrdering            = false;
 static bool   runOnePhase               = false;
 
 static bool   generateGraph             = false;
+static bool   justProcessGraph          = false;
 static GraphElem numVerticesGenGraph    = 0;
 static int randomEdgePercent            = 0;
 
@@ -201,6 +202,12 @@ int main(int argc, char *argv[])
     ofs << "Threads Enabled : " << omp_get_max_threads() << std::endl;
 #endif
 #endif
+
+  if (justProcessGraph) {
+      if (me == 0)
+          std::cout << "Option to just process the graph is turned on, so exiting without invoking community detection." << std::endl;
+      return 0;
+  }
 
   GraphWeight currMod = -1.0, prevMod = -1.0;
   double total=0;
@@ -584,7 +591,7 @@ void parseCommandLine(const int argc, char * const argv[])
 {
   int ret;
 
-  while ((ret = getopt(argc, argv, "f:bc:od:r:t:a:ig:zpn:e:s:")) != -1) {
+  while ((ret = getopt(argc, argv, "f:bc:od:r:t:a:ig:zpn:e:s:j")) != -1) {
     switch (ret) {
     case 'f':
       inputFileName.assign(optarg);
@@ -635,6 +642,9 @@ void parseCommandLine(const int argc, char * const argv[])
       break;
     case 's':
       outputFileName.assign(optarg);
+      break;
+    case 'j':
+      justProcessGraph = true;
       break;
     default:
       assert(0 && "Should not reach here!!");
