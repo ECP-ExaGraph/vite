@@ -195,12 +195,18 @@ int main(int argc, char *argv[])
     ofs << "Time to create distributed graph: " << (td1 - td0) << std::endl;
 #endif  
 #ifdef USE_OMP
-  if(me == 0)
+  if(me == 0) {
+      int nt = 0;
+#pragma omp parallel
+      {
+          nt = omp_get_max_threads();
+      }
 #if defined(DONT_CREATE_DIAG_FILES)
-    std::cout << "Threads Enabled : " << omp_get_max_threads() << std::endl;
+    std::cout << "Threads Enabled : " << nt << std::endl;
 #else
-    ofs << "Threads Enabled : " << omp_get_max_threads() << std::endl;
+    ofs << "Threads Enabled : " << nt << std::endl;
 #endif
+  }
 #endif
 
   if (justProcessGraph) {
@@ -210,7 +216,7 @@ int main(int argc, char *argv[])
   }
 
   GraphWeight currMod = -1.0, prevMod = -1.0;
-  double total=0;
+  double total=0, ctime=0;
   int phase = 0, short_phase = 0;
 
   int iters = 0, tot_iters = 0;
@@ -367,6 +373,7 @@ int main(int argc, char *argv[])
     tot_iters += iters;
          
     ptotal += (t0-t1);
+    ctime += (t0-t1);
      
     if((currMod - prevMod) > threshold) {
                
@@ -458,10 +465,10 @@ int main(int argc, char *argv[])
     if(me == 0 ) {
         teps += dg->getTotalNumEdges() * tot_iters;
 #if defined(DONT_CREATE_DIAG_FILES)
-        std::cout << "Level "<< phase << ", Modularity: " << currMod <<", Time: "<<t0-t1<< ", Iterations: " 
+        std::cout << "Level "<< phase << ", Modularity: " << currMod <<", Clustering time: "<<t0-t1<< ", Iterations: " 
             << tot_iters << std::endl;
 #else
-        ofs << "Level "<< phase << ", Modularity: " << currMod <<", Time: "<<t0-t1<< ", Iterations: " 
+        ofs << "Level "<< phase << ", Modularity: " << currMod <<", Clustering time: "<<t0-t1<< ", Iterations: " 
             << tot_iters << std::endl;
 #endif
     }
@@ -509,14 +516,22 @@ int main(int argc, char *argv[])
   
   double tot_time = 0.0;
   MPI_Reduce(&total, &tot_time, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+  double ctot_time = 0.0;
+  MPI_Reduce(&ctime, &ctot_time, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
   
   if(me == 0) {
 #if defined(DONT_CREATE_DIAG_FILES)
-      std::cout << "TERMINATE TIME: " << (tot_time/nprocs) << std::endl;
+      std::cout << "-------------------------------------------------------" << std::endl;
+      std::cout << "Average total time (secs.): " << (tot_time/nprocs) << std::endl;
+      std::cout << "Average time for clustering (secs.): " << (ctot_time/nprocs) << std::endl;
       std::cout << "TEPS: " << (double)teps/(double)(tot_time/nprocs) << std::endl;
+      std::cout << "-------------------------------------------------------" << std::endl;
 #else
-      ofs<< "TERMINATE TIME: "<< total<<std::endl;
+      ofs << "--------------------------------------------------------------" << std::endl;
+      ofs<< "Average (over processes) total time (secs.): "<< (tot_time/nprocs)<<std::endl;
+      ofs << "Average time for clustering (secs.): " << (ctot_time/nprocs) << std::endl;
       ofs<< "TEPS: " << (double)teps/(double)(tot_time/nprocs) <<std::endl;
+      ofs << "--------------------------------------------------------------" << std::endl;
 #endif
   }
 
