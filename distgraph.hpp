@@ -171,9 +171,9 @@ inline void DistGraph::printStats()
     GraphElem sum_sq = 0;
     MPI_Reduce(&my_sq, &sum_sq, 1, MPI_GRAPH_TYPE, MPI_SUM, 0, MPI_COMM_WORLD);
 
-    GraphWeight average  = (GraphWeight) sumdeg / size;
-    GraphWeight avg_sq   = (GraphWeight) sum_sq / size;
-    GraphWeight var      = avg_sq - (average*average);
+    GraphWeight average  = (GraphWeight)sumdeg / (GraphWeight)size;
+    GraphWeight avg_sq   = (GraphWeight)sum_sq / (GraphWeight)size;
+    GraphWeight var      = std::abs(avg_sq - (average*average));
     GraphWeight stddev   = sqrt(var);
 
     MPI_Barrier(MPI_COMM_WORLD);
