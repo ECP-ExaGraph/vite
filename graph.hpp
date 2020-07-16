@@ -100,7 +100,6 @@ public:
   Edge &getEdge(const GraphElem edge);
   
   friend std::ostream &operator <<(std::ostream &os, const Graph &g);
-
 protected:
   Graph();
   Graph &operator = (const Graph &othis);

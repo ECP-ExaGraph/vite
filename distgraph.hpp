@@ -100,6 +100,7 @@ public:
   PartRanges *parts;
   void setNumEdges(GraphElem numEdges); 
   void printStats();
+  GraphElem getNumGhosts(const int me) const;
 protected:
   DistGraph();
   DistGraph &operator = (const DistGraph &othis);
@@ -270,4 +271,18 @@ inline int DistGraph::getOwner(const GraphElem v) const
     return (iter - parts->begin() -1);
 } // getOwner
 
+inline GraphElem DistGraph::getNumGhosts(const int me) const
+{
+  const Graph &g = this->getLocalGraph();  
+  GraphElem numGhosts = 0;  
+  for (GraphElem i = 0; i < g.getNumVertices(); i++) {
+    const GraphElem lb = g.edgeListIndexes[i], ub = g.edgeListIndexes[i + 1];
+    for (GraphElem j = lb; j < ub; j++) {
+      const Edge &edge = g.getEdge(j);
+      if (this->getOwner(edge.tail) != me)
+          numGhosts += 1;
+    }
+  }
+  return numGhosts;
+} // return number of ghost vertices
 #endif // __DISTGRAPH_H
