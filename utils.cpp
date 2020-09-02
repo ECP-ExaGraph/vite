@@ -121,22 +121,22 @@ void processGraphData(Graph &g, std::vector<GraphElem> &edgeCount,
 
   GraphElem ePos = 0;
   for (GraphElem i = 0; i < nv; i++) {
-    GraphElem e0, e1;
+	  GraphElem e0, e1;
+	  g.getEdgeRangeForVertex(i, e0, e1);
 
-    g.getEdgeRangeForVertex(i, e0, e1);
-    if ((i % 100000) == 0)
-      std::cout << "Processing edges for vertex: " << i << ", range(" << e0 << ", " << e1 <<
-	")" << std::endl;
+	  if ((i % 100000) == 0)
+		  std::cout << "Processing edges for vertex: " << i << ", range(" << e0 << ", " << e1 <<
+			  ")" << std::endl;
 
-    for (GraphElem j = e0; j < e1; j++) {
-      Edge &edge = g.getEdge(j);
+	  for (GraphElem j = e0; j < e1; j++) {
+		  Edge &edge = g.getEdge(j);
 
-      assert(ePos == j);
-      assert(i == edgeList[ePos].i_);
-      edge.tail = edgeList[ePos].j_;
-      edge.weight = edgeList[ePos].w_;
+		  assert(ePos == j);
+		  assert(i == edgeList[ePos].i_);
+		  edge.tail = edgeList[ePos].j_;
+		  edge.weight = edgeList[ePos].w_;
 
-      ePos++;
-    }
+		  ePos++;
+	  }
   }
 } // processGraphData
