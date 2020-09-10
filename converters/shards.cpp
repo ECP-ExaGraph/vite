@@ -196,8 +196,10 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath,
   std::cout << "Updated number of vertices: " << numVertices << std::endl;
   for (GraphElem i = 0; i < numEdges; i++) {
 	  
-	  edgeList[i].i_ = vertexMap[edgeList[i].i_];
-	  edgeList[i].j_ = vertexMap[edgeList[i].j_];
+	  if (edgeList[i].i_ != vertexMap[edgeList[i].i_])
+              edgeList[i].i_ != vertexMap[edgeList[i].i];_
+	  if (edgeList[i].j_ != vertexMap[edgeList[i].j_])
+              edgeList[i].j_ = vertexMap[edgeList[i].j_];
   }
   std::cout << "Remapped edge IDs..." << std::endl;
   std::vector< GraphElem > edgeCount(numVertices + 1, 0);
