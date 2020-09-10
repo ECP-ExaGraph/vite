@@ -174,12 +174,10 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath,
   std::vector< GraphElem > vertexMap(numVertices, 0);
   for (GraphElem i = 0; i < numEdges; i++) {
 
-	  if (vertexMap[edgeList[i].i_] == 0) {
+	  if (vertexMap[edgeList[i].i_] == 0) 
               vertexMap[edgeList[i].i_] = 1;
-          }
-	  if (vertexMap[edgeList[i].j_] == 0) {
+	  if (vertexMap[edgeList[i].j_] == 0) 
               vertexMap[edgeList[i].j_] = 1;
-          }
   }
 
   for (GraphElem i = 0; i < numVertices; i++) {
