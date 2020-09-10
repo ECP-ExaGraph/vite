@@ -80,9 +80,8 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath,
   assert(fileEndIndex >= 0);
   assert(fileEndIndex >= fileStartIndex);
   
-  GraphElem numFiles = 0, numEdges, numVertices, v_idx = 0, past_v = -1;
+  GraphElem numFiles = 0, numEdges, numVertices, v_idx = 0, maxVertex = -1;
   std::vector<GraphElemTuple> edgeList;
-  std::map<GraphElem, GraphElem> vertexMap;
 
   /// Part 1: Read the file shards 
   // start reading 
@@ -135,7 +134,12 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath,
 
 			  if (v0 == v1)
 				  continue;
-			  
+					  
+                          if (v0 > maxVertex)
+				  maxVertex = v0;
+			  if (v1 > maxVertex)
+				  maxVertex = v1;
+	  
 			  if (wtype == ONE_WEIGHT)
 				  w = 1.0;
 
@@ -147,15 +151,6 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath,
 
 			  edgeList.emplace_back(v0, v1, w);
 			  edgeList.emplace_back(v1, v0, w);
-
-			  if (past_v != v0) {
-				  if (vertexMap.find(v0) == vertexMap.end()) {
-					  vertexMap.insert(std::pair<GraphElem, GraphElem>(v0, v_idx));
-					  v_idx += 1;
-				  }
-			  }
-
-			  past_v = v0;
 		  }
 
 		  // close current shard
@@ -163,40 +158,58 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath,
 	  }
   }
 
-  numVertices = v_idx;
+  if (!indexOneBased)
+	  numVertices = maxVertex + 1;
+  else
+	  numVertices = maxVertex;
   numEdges = edgeList.size();
-
   double t2 = mytimer();  
   
   std::cout << "Read " << numFiles << " file shards (undirected data)." << std::endl;
-  std::cout << "Partial #vertices: " << numVertices << " and #edges: " << numEdges << std::endl;
+  std::cout << "Unadjusted #vertices: " << numVertices << " and #edges: " << numEdges << std::endl;
   std::cout << "Time taken for serial file I/O: " << (t2 - t0) << " secs." << std::endl;
 
-  /// Part 1.5: map remaining edges    
+  /// Part 1.5: remap vertex IDs   
 
+  std::vector< GraphElem > vertexMap(numVertices, 0);
   for (GraphElem i = 0; i < numEdges; i++) {
-	  if (vertexMap.find(edgeList[i].j_) == vertexMap.end()) {
-		  vertexMap.insert(std::pair<GraphElem, GraphElem>(edgeList[i].j_, v_idx));
-		  v_idx += 1;
-	  }
+
+	  if (vertexMap[edgeList[i].i_] == 0) {
+              vertexMap[edgeList[i].i_] = 1;
+          }
+	  if (vertexMap[edgeList[i].j_] == 0) {
+              vertexMap[edgeList[i].j_] = 1;
+          }
+  }
+
+  for (GraphElem i = 0; i < numVertices; i++) {
+
+	  if (vertexMap[i]) {
+              vertexMap[i] = v_idx;
+              v_idx += 1;
+          }
   }
 
   /// Part 2: perform edge counts and generate the binary file    
 
   numVertices = v_idx;
   std::cout << "Updated number of vertices: " << numVertices << std::endl;
+  for (GraphElem i = 0; i < numEdges; i++) {
+	  
+	  edgeList[i].i_ = vertexMap[edgeList[i].i_];
+	  edgeList[i].j_ = vertexMap[edgeList[i].j_];
+  }
+  std::cout << "Remapped edge IDs..." << std::endl;
   std::vector< GraphElem > edgeCount(numVertices + 1, 0);
   for (GraphElem i = 0; i < numEdges; i++) {
-	  const GraphElem vtx_i = vertexMap[edgeList[i].i_];
-	  const GraphElem vtx_j = vertexMap[edgeList[i].j_];
 
-	  edgeList[i].i_ = vtx_i;
-	  edgeList[i].j_ = vtx_j;
+          assert(edgeList[i].i_ >= 0 && edgeList[i].i_ < numVertices);	  
+          assert(edgeList[i].j_ >= 0 && edgeList[i].j_ < numVertices);	  
 
-	  edgeCount[vtx_i+1]++;
-	  edgeCount[vtx_j+1]++;
+	  edgeCount[edgeList[i].i_+1]++;
+	  edgeCount[edgeList[i].j_+1]++;
   }
-
+  std::cout << "Counted the #edges..." << std::endl;
   g = new Graph(numVertices, numEdges);
   processGraphData(*g, edgeCount, edgeList, numVertices, numEdges);
 
