@@ -195,7 +195,7 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath,
   for (GraphElem i = 0; i < numEdges; i++) {
 	  
 	  if (edgeList[i].i_ != vertexMap[edgeList[i].i_])
-              edgeList[i].i_ != vertexMap[edgeList[i].i_];
+              edgeList[i].i_ = vertexMap[edgeList[i].i_];
 	  if (edgeList[i].j_ != vertexMap[edgeList[i].j_])
               edgeList[i].j_ = vertexMap[edgeList[i].j_];
   }
