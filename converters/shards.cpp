@@ -176,13 +176,11 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath,
 
 	  if (vertexMap[edgeList[i].i_] == 0) 
               vertexMap[edgeList[i].i_] = 1;
-	  if (vertexMap[edgeList[i].j_] == 0) 
-              vertexMap[edgeList[i].j_] = 1;
   }
 
   for (GraphElem i = 0; i < numVertices; i++) {
 
-	  if (vertexMap[i]) {
+	  if (vertexMap[i] == 1) {
               vertexMap[i] = v_idx;
               v_idx += 1;
           }
@@ -192,16 +190,12 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath,
 
   numVertices = v_idx;
   std::cout << "Updated number of vertices: " << numVertices << std::endl;
-  for (GraphElem i = 0; i < numEdges; i++) {
-	  
-	  if (edgeList[i].i_ != vertexMap[edgeList[i].i_])
-              edgeList[i].i_ = vertexMap[edgeList[i].i_];
-	  if (edgeList[i].j_ != vertexMap[edgeList[i].j_])
-              edgeList[i].j_ = vertexMap[edgeList[i].j_];
-  }
-  std::cout << "Remapped edge IDs..." << std::endl;
+
   std::vector< GraphElem > edgeCount(numVertices + 1, 0);
   for (GraphElem i = 0; i < numEdges; i++) {
+          
+          edgeList[i].i_ = vertexMap[edgeList[i].i_];
+          edgeList[i].j_ = vertexMap[edgeList[i].j_];
 
           assert(edgeList[i].i_ >= 0 && edgeList[i].i_ < numVertices);	  
           assert(edgeList[i].j_ >= 0 && edgeList[i].j_ < numVertices);	  
@@ -209,7 +203,7 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath,
 	  edgeCount[edgeList[i].i_+1]++;
 	  edgeCount[edgeList[i].j_+1]++;
   }
-  std::cout << "Counted the #edges..." << std::endl;
+  std::cout << "Prepared the graph CSR." << std::endl;
   g = new Graph(numVertices, numEdges);
   processGraphData(*g, edgeCount, edgeList, numVertices, numEdges);
 
