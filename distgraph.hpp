@@ -113,8 +113,8 @@ void loadDistGraphMPIIOBalanced(int me, int nprocs, int ranks_per_node,
         DistGraph *&dg, std::string& fileName);
 
 // graph generation
-void generateInMemGraph(int rank, int nprocs, DistGraph *&dg, GraphElem nv, int randomEdgePercent, std::string fileOut);
-DistGraph* generateRGG(int rank, int nprocs, GraphElem nv, GraphWeight rn, int randomEdgePercent, std::string fileOut);
+void generateInMemGraph(int rank, int nprocs, DistGraph *&dg, GraphElem nv, GraphWeight randomEdgePercent, std::string fileOut);
+DistGraph* generateRGG(int rank, int nprocs, GraphElem nv, GraphWeight rn, GraphWeight randomEdgePercent, std::string fileOut);
 
 void writeGraph(int me, int nprocs, DistGraph *&dg, std::vector<GraphElem>& edgeCount, std::string &fileName);
 

@@ -389,7 +389,7 @@ void loadDistGraphMPIIOBalanced(int me, int nprocs, int ranks_per_node, DistGrap
 // generate graph
 // 1D vertex distribution
 void generateInMemGraph(int rank, int nprocs, DistGraph *&dg, GraphElem nv, 
-        int randomEdgePercent, std::string fileOut="")
+        GraphWeight randomEdgePercent, std::string fileOut="")
 {
     GraphWeight rn;
 
@@ -410,7 +410,7 @@ void generateInMemGraph(int rank, int nprocs, DistGraph *&dg, GraphElem nv,
 // TODO FIXME use OpenMP wherever possible
 // use Euclidean distance as edge weight
 DistGraph* generateRGG(int rank, int nprocs, GraphElem nv, GraphWeight rn, 
-        int randomEdgePercent, std::string fileOut="")
+        GraphWeight randomEdgePercent, std::string fileOut="")
 {
     int up, down;
 
@@ -699,7 +699,7 @@ DistGraph* generateRGG(int rank, int nprocs, GraphElem nv, GraphWeight rn,
 
     // add random edges based on 
     // randomEdgePercent 
-    if (randomEdgePercent > 0) {
+    if (randomEdgePercent > 0.0) {
         const GraphElem pnedges = (edgeList.size()/2);
         GraphElem tot_pnedges = 0;
 
@@ -707,7 +707,7 @@ DistGraph* generateRGG(int rank, int nprocs, GraphElem nv, GraphWeight rn,
                 MPI_SUM, MPI_COMM_WORLD);
 
         // extra #edges per process
-        const GraphElem nrande = (((GraphElem)randomEdgePercent * tot_pnedges)/100);
+        const GraphElem nrande = (((GraphElem)(randomEdgePercent * (GraphWeight)tot_pnedges))/100);
         GraphElem pnrande;
 
         // TODO FIXME try to ensure a fair edge distibution

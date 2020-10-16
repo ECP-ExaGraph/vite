@@ -86,7 +86,7 @@ static bool   runOnePhase               = false;
 static bool   generateGraph             = false;
 static bool   justProcessGraph          = false;
 static GraphElem numVerticesGenGraph    = 0;
-static int randomEdgePercent            = 0;
+static GraphWeight randomEdgePercent    = 0.0;
 
 static bool   readBalanced              = false;
 static int    ranksPerNode              = 1;
@@ -653,7 +653,7 @@ void parseCommandLine(const int argc, char * const argv[])
       numVerticesGenGraph = atol(optarg);
       break;
     case 'e':
-      randomEdgePercent = atoi(optarg);
+      randomEdgePercent = atof(optarg);
       break;
     case 's':
       outputFileName.assign(optarg);
@@ -701,7 +701,7 @@ void parseCommandLine(const int argc, char * const argv[])
       MPI_Abort(MPI_COMM_WORLD, -99);
   }
   
-  if (me == 0 && !generateGraph && randomEdgePercent) {
+  if (me == 0 && !generateGraph && (randomEdgePercent > 0.0)) {
       std::cerr << "Must specify -n <...> for graph generation first and then -p <...> to add random edges to it." << std::endl;
       MPI_Abort(MPI_COMM_WORLD, -99);
   }
