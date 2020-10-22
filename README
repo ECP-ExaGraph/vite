@@ -96,12 +96,17 @@ that by passing -z, such that it will be converted to
 bin/./fileConvert -s -z -f network.dat -o lfrtest.bin
 
 Note: We consider files containing edge list, as 'simple' 
-format files (option "-s" for directed, and option "-u" for
-undirected). If you have a simple format file (i.e., an 
-edge list) that does not have weights, then please pass 
-"-w" or "-r" in addition to "-s" or "-u" such that we can 
-assign weights internally. By default, we assume edge list
-files to have weights.
+formatted files (option "-s" for directed, and option "-u" 
+for undirected). If you have a weighted simple format file 
+(i.e., is `u v w` format) then you have to additionally
+pass "-i". 
+If there are weights in such an edge-list file and for some 
+reason you do not want to consider them, pass "-w" or "-r" 
+in addition to "-s" or "-u" such that we can assign one-weights 
+or random-weights internally. 
+
+By default, we assume edge list files to not have any weights 
+(as in, just `u v` per line).
 
 bin/./fileConvert -f uk2007-edges.txt -s -w -o uk2007.bin
 
