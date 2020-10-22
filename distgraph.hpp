@@ -149,51 +149,50 @@ inline GraphElem DistGraph::getTotalNumEdges() const
 // print statistics about edge distribution
 inline void DistGraph::printStats()
 {
-    GraphElem sumdeg = 0, maxdeg = 0, mindeg = 0;
     int me, size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &me);
 
     Graph &g = this->getLocalGraph(); // local graph 
-    const GraphElem lne = g.getNumEdges(); // local #edges
-    const GraphElem nv = this->getTotalNumVertices(); // global #vertices
+    long lne = (long)g.getNumEdges(); // local #edges
+    long nv = (long)this->getTotalNumVertices(); // global #vertices
     // TODO FIXME currently totalNumEdges variable stores local
     // number of edges and not total, keep a separate variable
     //const GraphElem ne = this->getTotalNumEdges(); // global #edges
-    // compute total number of edges
-    GraphElem ne = 0;
-    MPI_Allreduce(&lne, &ne, 1, MPI_GRAPH_TYPE, MPI_SUM, MPI_COMM_WORLD);
+    long ne = 0;
+    MPI_Allreduce(&lne, &ne, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
 
-    MPI_Reduce(&lne, &sumdeg, 1, MPI_GRAPH_TYPE, MPI_SUM, 0, MPI_COMM_WORLD);
-    MPI_Reduce(&lne, &maxdeg, 1, MPI_GRAPH_TYPE, MPI_MAX, 0, MPI_COMM_WORLD);
-    MPI_Reduce(&lne, &mindeg, 1, MPI_GRAPH_TYPE, MPI_MIN, 0, MPI_COMM_WORLD);
+    long sumdeg = 0, maxdeg = 0, mindeg = 0;
+    MPI_Reduce(&lne, &sumdeg, 1, MPI_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
+    MPI_Reduce(&lne, &maxdeg, 1, MPI_LONG, MPI_MAX, 0, MPI_COMM_WORLD);
+    MPI_Reduce(&lne, &mindeg, 1, MPI_LONG, MPI_MIN, 0, MPI_COMM_WORLD);
 
-    GraphElem my_sq = lne*lne;
-    GraphElem sum_sq = 0;
-    MPI_Reduce(&my_sq, &sum_sq, 1, MPI_GRAPH_TYPE, MPI_SUM, 0, MPI_COMM_WORLD);
+    long my_sq = lne*lne;
+    long sum_sq = 0;
+    MPI_Reduce(&my_sq, &sum_sq, 1, MPI_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
 
-    GraphWeight average  = (GraphWeight)sumdeg / (GraphWeight)size;
-    GraphWeight avg_sq   = (GraphWeight)sum_sq / (GraphWeight)size;
-    GraphWeight var      = std::abs(avg_sq - (average*average));
-    GraphWeight stddev   = sqrt(var);
+    double average  = (double) sumdeg / size;
+    double avg_sq   = (double) sum_sq / size;
+    double var      = avg_sq - (average*average);
+    double stddev   = sqrt(var);
 
     MPI_Barrier(MPI_COMM_WORLD);
 
     if (me == 0)
     {
-        std::cout << std::endl;
-        std::cout << "-------------------------------------------------------" << std::endl;
-        std::cout << "Graph edge distribution characteristics" << std::endl;
-        std::cout << "-------------------------------------------------------" << std::endl;
-        std::cout << "Number of vertices: " << nv << std::endl;
-        std::cout << "Number of edges: " << ne << std::endl;
-        std::cout << "Maximum number of edges: " << maxdeg << std::endl;
-        std::cout << "Minimum number of edges: " << mindeg << std::endl;
-        std::cout << "Mean number of edges: " << average << std::endl;
-        std::cout << "Expected value of X^2: " << avg_sq << std::endl;
-        std::cout << "Variance: " << var << std::endl;
-        std::cout << "Standard deviation: " << stddev << std::endl;
-        std::cout << "-------------------------------------------------------" << std::endl;
+      std::cout << std::endl;
+      std::cout << "-------------------------------------------------------" << std::endl;
+      std::cout << "Graph edge distribution characteristics" << std::endl;
+      std::cout << "-------------------------------------------------------" << std::endl;
+      std::cout << "Number of vertices: " << nv << std::endl;
+      std::cout << "Number of edges: " << ne << std::endl;
+      std::cout << "Maximum number of edges: " << maxdeg << std::endl;
+      std::cout << "Average number of edges: " << average << std::endl;
+      std::cout << "Minimum number of edges: " << mindeg << std::endl;
+      std::cout << "Expected value of X^2: " << avg_sq << std::endl;
+      std::cout << "Variance: " << var << std::endl;
+      std::cout << "Standard deviation: " << stddev << std::endl;
+      std::cout << "-------------------------------------------------------" << std::endl;
 
     }
 }
