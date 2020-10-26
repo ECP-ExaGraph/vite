@@ -58,16 +58,11 @@
 
 #include "simple.hpp"
 
-// Note: The difference between simple and simple2 is that
-// `simple` considers the input graph as directed and only
-// stores edges as they are listed in the file. Whereas
-// `simple2` considers an undirected graph, and stores 
-// both combinations of edge pairs.
 void loadSimpleFileUn(Graph *&g, const std::string &fileName, bool indexOneBased, Weight_t wtype)
 {
   std::ifstream ifs;
 
-  double t0, t1, t2, t3;
+  double t0, t1;
 
   t0 = mytimer();
 
@@ -107,20 +102,11 @@ void loadSimpleFileUn(Graph *&g, const std::string &fileName, bool indexOneBased
     if (v1 > maxVertex)
       maxVertex = v1;
 
-    numEdges++;
   } while (!ifs.eof());
-
-  numEdges--;  // Do not consider last line
 
   numVertices = maxVertex + 1;
 
-  t1 = mytimer();
-
-  std::cout << "Loading Simple file: " << fileName << ", numvertices: " << numVertices <<
-    ", numEdges: " << numEdges << std::endl;
-  std::cout << "Edge & vertex count time: " << (t1 - t0) << std::endl;
-
-  t2 = mytimer();
+  std::cout << "Loading Simple file: " << fileName << ", numvertices: " << numVertices << std::endl;
 
   ifs.close();
   
@@ -160,34 +146,15 @@ void loadSimpleFileUn(Graph *&g, const std::string &fileName, bool indexOneBased
         w = std::fabs(w);
 
     edgeList.push_back({v0, v1, w});
-    edgeList.push_back({v1, v0, w});
-
     edgeCount[v0+1]++;
-    edgeCount[v1+1]++;
   }
 
   ifs.close();
 
-  t3 = mytimer();
-  
   numEdges = edgeList.size();
-
-  std::cout << "Edge read time: " << (t3 - t2) << std::endl;
-
-  t2 = mytimer();
-
-  std::cout << "Before allocating graph" << std::endl;
-
   g = new Graph(numVertices, numEdges);
-
-  assert(g);
-
-  std::cout << "Allocated graph: " << g << std::endl;
-
   processGraphData(*g, edgeCount, edgeList, numVertices, numEdges);
-
-  t3 = mytimer();  
-
-  std::cout << "Graph populate time: " << (t3 - t2) << std::endl;
-  std::cout << "Total I/O time: " << (t3 - t0) << std::endl;
+  
+  t1 = mytimer();  
+  std::cout << "Total graph processing time: " << (t1 - t0) << std::endl;
 } // loadSimpleFile
