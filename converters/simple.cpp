@@ -102,10 +102,11 @@ void loadSimpleFile(Graph *&g, const std::string &fileName,
           maxVertex = v1;
 
       numEdges++;
+
   } while (!ifs.eof());
 
-  numEdges--;
   numVertices = maxVertex + 1;
+  numEdges -= 1; // last line
   
   std::cout << "Loading simple format file (directed edge-list): " 
       << fileName << ", numvertices: " << numVertices << std::endl;

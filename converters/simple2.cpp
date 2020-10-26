@@ -101,10 +101,13 @@ void loadSimpleFileUn(Graph *&g, const std::string &fileName, bool indexOneBased
       maxVertex = v0;
     if (v1 > maxVertex)
       maxVertex = v1;
+      
+    numEdges++;
 
   } while (!ifs.eof());
 
   numVertices = maxVertex + 1;
+  numEdges -= 1; // last line
 
   std::cout << "Loading Simple file: " << fileName << ", numvertices: " << numVertices << std::endl;
 
