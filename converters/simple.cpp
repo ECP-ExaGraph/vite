@@ -108,8 +108,7 @@ void loadSimpleFile(Graph *&g, const std::string &fileName,
   numVertices = maxVertex + 1;
   
   std::cout << "Loading simple format file (directed edge-list): " 
-      << fileName << ", numvertices: " << numVertices 
-      << ", numEdges: " << numEdges << std::endl;
+      << fileName << ", numvertices: " << numVertices << std::endl;
 
   ifs.close();
    
@@ -150,12 +149,15 @@ void loadSimpleFile(Graph *&g, const std::string &fileName,
         w = std::fabs(w);
 
     edgeList.push_back({v0, v1, w});
+    edgeList.push_back({v1, v0, w});
     edgeCount[v0+1]++;
+    edgeCount[v1+1]++;
   }
 
   numEdges = edgeList.size();
 
   ifs.close();
+  std::cout << "Number of edges: " << numEdges << std::endl;
 
   g = new Graph(numVertices, numEdges);
   processGraphData(*g, edgeCount, edgeList, numVertices, numEdges);
