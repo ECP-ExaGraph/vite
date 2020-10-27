@@ -39,9 +39,11 @@ computation, it is doubtful how much GPU can help in improving the
 performance relative to using OpenMP host pragmas. However, we have added
 an option to enable OpenMP offload only for the modularity computation
 kernel. Vite must be built with -DOMP_TARGET_OFFLOAD and a compiler that
-supports OpenMP 4.5. Initial testing suggests that for certain graphs, it 
-is possible to obtain a 10-15% improvement in performance relative to
-host OpenMP.
+supports OpenMP 4.5. The default compiler options in the Makefile needs to 
+be updated as well, for instance, on Summit, for enabling OpenMP offload 
+in the XL compiler, one would need to pass: "-qsmp=omp -qoffload" currently.
+Initial testing suggests that for certain graphs, it is possible to achieve
+about 10-15% improvement in performance relative to host OpenMP.
 
 ************************
 ------------------------
