@@ -2282,25 +2282,29 @@ GraphWeight distComputeModularity(const Graph &g, CommVector &localCinfo,
   assert((clusterWeight.size() == nv));
 #endif
 
-#if defined(OMP_TARGET_OFFLOAD)
+const GraphWeight* clusterWeight_ptr = clusterWeight.data();
+const Comm* localCinfo_ptr = localCinfo.data();
+#ifdef OMP_TARGET_OFFLOAD
+int size;
 int ndevs = omp_get_num_devices();
 int to_offload = (ndevs > 0);
-#pragma omp target teams distribute parallel for if (to_offload) \
-reduction(+:le_xx) map(tofrom:le_xx) \
-reduction(+:la2_x) map(tofrom:la2_x) \
-map(clusterWeight, localCinfo) \
+#pragma omp target parallel for if (to_offload) \
+reduction(+:le_xx) \
+reduction(+:la2_x) \
+map(tofrom:le_xx, la2_x) \
+map(to:clusterWeight_ptr[0:nv], localCinfo_ptr[0:nv]) \
 device(me % ndevs)
-#elif defined(OMP_SCHEDULE_RUNTIME)
-#pragma omp parallel for shared(clusterWeight, localCinfo), \
+#elif OMP_SCHEDULE_RUNTIME
+#pragma omp parallel for default(shared), shared(clusterWeight, localCinfo), \
   reduction(+: le_xx), reduction(+: la2_x) schedule(runtime)
 #else
-#pragma omp parallel for shared(clusterWeight, localCinfo), \
+#pragma omp parallel for default(shared), shared(clusterWeight, localCinfo), \
   reduction(+: le_xx), reduction(+: la2_x) schedule(static)
 #endif
   for (GraphElem i = 0L; i < nv; i++) {
-    le_xx += clusterWeight[i];
-    la2_x += static_cast<GraphWeight>(localCinfo[i].degree) * static_cast<GraphWeight>(localCinfo[i].degree); 
-  } 
+    le_xx += clusterWeight_ptr[i];
+    la2_x += static_cast<GraphWeight>(localCinfo_ptr[i].degree) * static_cast<GraphWeight>(localCinfo_ptr[i].degree);
+  }
   le_la_xx[0] = le_xx;
   le_la_xx[1] = la2_x;
 
