@@ -83,10 +83,8 @@ ColorElem distColoringMultiHashMinMax(const int me, const int nprocs, const Dist
  if (!singleIteration) 
 	setUpGhostVertices( me, nprocs, dg, ghostVertices, ghostSizes);
 
-//std::cout << " DEAD HERE " << std::endl;
 
-
-// cycle until target not meet
+  // cycle until target not meet
   while (!finished) {
 		
         distColoringIteration(me, dg, vertexColor, remoteColoredVertices, nHash, nextColor, seed);
@@ -102,12 +100,11 @@ ColorElem distColoringMultiHashMinMax(const int me, const int nprocs, const Dist
 
 	nextColor += nHash * 2;
 	seed = hash(seed, 0);
-	lastCount=currentCount;
-	
-}
+	lastCount=currentCount;	
+  }
 
-if (singleIteration)
-	setUpGhostVertices(me,nprocs,dg,ghostVertices, ghostSizes);
+  if (singleIteration)
+      setUpGhostVertices(me,nprocs,dg,ghostVertices, ghostSizes);
 
 #if defined(CHECK_COLORING_CONFLICTS)
         GraphElem conflicts;

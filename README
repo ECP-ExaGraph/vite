@@ -170,7 +170,7 @@ file formats: convert the input file to binary format using fileConvert.
 using the binary file created in Step #0:
 
 E.g., pass a binary file using "-f" option and include other heuristics: 
-mpiexec -n 2 bin/./graphClustering -c -i -f karate.bin
+mpiexec -n 2 bin/./graphClustering -i -f karate.bin
 
 E.g., generate a random geometric graph by passing #vertices=64:
 mpiexec -n 2 bin/./graphClustering -n 64
@@ -186,11 +186,19 @@ mpiexec -n 2 bin/./graphClustering -f rgg64.bin
 Possible options (can be combined):
 
 1. -f <input>    : Input real-world binary file (read #1 above).
-2. -c <ncolors>  : Enable coloring, adjacent vertices are processed
+2. -c "<ncolors> <single-color-iteration?>"  : 
+                   Enable coloring, adjacent vertices are processed
                    in different order. Synchronization happens once
-                   per <ncolors>.
-3. -d <ncolors>  : Enable coloring, adjacent vertices are processes
-                   in different order. No synchronization.
+                   per <ncolors>, so this option can significantly
+                   increase execution time. 
+                   We use incomplete iterative
+                   coloring algorithm (Jones-Plassmann), so passed colors 
+                   is just a hint, also pass whether a single-color-iteration
+                   is expected, by default multiple iterations are invoked.
+3. -d "<ncolors>  <single-color-iteration?>"  : 
+                   Enable coloring, adjacent vertices are processes
+                   in different order. No communication overhead like
+                   above, only local overhead of coloring subgraph.
 4. -i            : Threshold cycling, threshold changes dynamically
                    in every phase of Louvain algorithm.
 5. -t 1          : If a vertex is in the same community for past 3
@@ -242,6 +250,16 @@ Possible options (can be combined):
                    output is a binary file as per the output file path.
 18: -j           : Just process (read or generate) the graph and exit without running
                    community detection.
+
+Coloring:
+
+mpiexec -n 2 bin/graphClustering -c "4" -f karate.bin
+mpiexec -n 2 bin/graphClustering -c "8 false" -i -f karate.bin
+
+By default, the coloring method is run for multiple iterations, to make it run for 
+just a single iteration, pass "true". For e.g.:
+mpiexec -n 2 bin/graphClustering -c "4 true" -f karate.bin
+
 
 *Note: Option to update inactive vertices percentage is defined as
 macro ET_CUTOFF in louvain.hpp, and the default is 2%.

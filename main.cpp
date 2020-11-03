@@ -58,6 +58,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <cctype>
 
 #include <omp.h>
 #include <mpi.h>
@@ -67,13 +68,10 @@
 #include "compare.hpp"
 #include "utils.hpp"
 
-// for coloring
-#define MAX_COVG    (70)
-
 std::ofstream ofs;
 std::ofstream ofcks;
 
-static std::string inputFileName, outputFileName;
+static std::string inputFileName, outputFileName, colorArgs;
 static std::string groundTruthFileName;
 static int me, nprocs;
 
@@ -82,6 +80,7 @@ static bool   coloring                  = false;
 static int    maxColors                 = 8;
 static bool   vertexOrdering            = false;
 static bool   runOnePhase               = false;
+static bool   singleColorIter           = false;
 
 static bool   generateGraph             = false;
 static bool   justProcessGraph          = false;
@@ -266,7 +265,7 @@ int main(int argc, char *argv[])
     // only invoke coloring for first phase when the graph is the largest
     if (coloring && (phase == 0)) { 
         t1 = MPI_Wtime();
-        numColors = distColoringMultiHashMinMax(me, nprocs, *dg, colors, (maxColors/2), MAX_COVG, false);
+        numColors = distColoringMultiHashMinMax(me, nprocs, *dg, colors, (maxColors/2), MAX_COVG, singleColorIter);
 #if defined(DONT_CREATE_DIAG_FILES)
         if (me == 0) std::cout << "Number of colors (2*nHash): " << numColors << std::endl;
 #else
@@ -307,7 +306,7 @@ int main(int argc, char *argv[])
     }
     else if (vertexOrdering && (phase == 0)) {
         t1 = MPI_Wtime();
-        numColors = distColoringMultiHashMinMax(me, nprocs, *dg, colors, (maxColors/2), MAX_COVG, false);
+        numColors = distColoringMultiHashMinMax(me, nprocs, *dg, colors, (maxColors/2), MAX_COVG, singleColorIter);
 #if defined(DONT_CREATE_DIAG_FILES)
         if (me == 0) std::cout << "Number of colors (2*nHash): " << numColors << std::endl;
 #else
@@ -605,6 +604,7 @@ int main(int argc, char *argv[])
 void parseCommandLine(const int argc, char * const argv[])
 {
   int ret;
+  char *temp; // check empty values
 
   while ((ret = getopt(argc, argv, "f:bc:od:r:t:a:ig:zpn:e:s:j")) != -1) {
     switch (ret) {
@@ -615,14 +615,46 @@ void parseCommandLine(const int argc, char * const argv[])
       readBalanced = true;
       break;
     case 'c':
-      maxColors = atoi(optarg);
+      {
+          colorArgs.assign(optarg);
+          std::stringstream ss(colorArgs);
+          std::string s;
+          std::vector<std::string> args;
+          while (std::getline(ss, s, ' ')) {
+              args.push_back(s);
+          }
+          if (args.size() > 1) {
+              maxColors = std::stol(args[0]);
+              std::transform(args[1].begin(), args[1].end(), args[1].begin(), ::tolower);
+              std::istringstream is(args[1]);
+              is >> std::boolalpha >> singleColorIter;
+          }
+          else 
+              maxColors = std::stol(args[0]);
+      }
       coloring = true;
       break;
     case 'o':
       outputFiles = true;
       break;
     case 'd':
-      maxColors = atoi(optarg);
+      {
+          colorArgs.assign(optarg);
+          std::stringstream ss(colorArgs);
+          std::string s;
+          std::vector<std::string> args;
+          while (std::getline(ss, s, ' ')) {
+              args.push_back(s);
+          }
+          if (args.size() > 1) {
+              maxColors = std::stol(args[0]);
+              std::transform(args[1].begin(), args[1].end(), args[1].begin(), ::tolower);
+              std::istringstream is(args[1]);
+              is >> std::boolalpha >> singleColorIter;
+          }
+          else 
+              maxColors = std::stol(args[0]);
+      }
       vertexOrdering = true;
       break;
     case 'r':

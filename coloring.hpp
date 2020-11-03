@@ -66,6 +66,11 @@
 #include "graph.hpp"
 #include "distgraph.hpp"
 
+#ifndef MAX_COVG
+#define MAX_COVG    (70)
+#endif
+
+
 #ifdef USE_32_BIT_GRAPH
 typedef int32_t ColorElem;
 #else
