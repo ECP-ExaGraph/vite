@@ -7,11 +7,10 @@ Vite (ˈviːte/)
  ABOUT
 -------
 *******
-`Vite` is an MPI+OpenMP implementation of Louvain method for 
-graph clustering or community detection, that supports a number 
-of heuristics to improve the scalability. Vite can use both 
-real-world and synthetic graph (uses an in-memory random geometric 
-graph generator).
+`Vite` is an MPI+OpenMP implementation of Louvain method for (undirected) 
+graph clustering or community detection, that supports a number of heuristics 
+to improve the scalability. Vite can use both real-world and synthetic graph 
+(uses an in-memory random geometric graph generator).
 
 Please refer to the following paper that discusses the 
 distributed implementation and associated heuristics:
