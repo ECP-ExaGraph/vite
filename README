@@ -172,6 +172,22 @@ By default, we assume edge list files to not have any weights
 
 bin/./fileConvert -f uk2007-edges.txt -s -w -o uk2007.bin
 
+Note on `-s` and `-u` options
+-----------------------------
+The `-s` or `-u` option is just to tell the implementation about 
+your native graph format (as in if you pass `-s`, we assume in 
+your edge list just `u v` exists and not its complement; whereas 
+when you pass `-u`, we will assume that both `u v`  and `v u` 
+exists). 
+
+Regardless of the native format, internally, we always use an 
+undirected graph representation, because the algorithm itself 
+assumes an undirected input, and accordingly prints the number of 
+edges as double if your native graph was directed (on the other 
+hand, if your native graph was undirected, and for e.g., you used 
+`-u` to convert to binary, the #edges printed by the implementation 
+should exactly match with the #edges of your native graph).
+
 ****************************
 ----------------------------
  SYNTHETIC GRAPH GENERATION
