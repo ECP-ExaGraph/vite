@@ -8,29 +8,30 @@ Vite (ˈviːte/)
 -------
 *******
 `Vite` is an MPI+OpenMP implementation of Louvain method for 
-community detection, that supports a number of heuristics 
-to improve the scalability. Vite can use both real-world and
-synthetic graph (uses an in-memory random geometric graph
-generator).
+graph clustering or community detection, that supports a number 
+of heuristics to improve the scalability. Vite can use both 
+real-world and synthetic graph (uses an in-memory random geometric 
+graph generator).
 
 Please refer to the following paper that discusses the 
 distributed implementation and associated heuristics:
 https://ieeexplore.ieee.org/abstract/document/8425242/
 
 We recently added an option to improve the distribution to
-be more edge-balanced rather than standard vertex-based, which
-can avoid communication and improve execution time. Relevant 
-discussion in the following paper:
+be more edge-balanced rather than standard vertex-based ("-b"), 
+which can avoid communication and improve execution time. 
+Relevant discussion in the following paper:
 https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=8916299
 
 
 If quality is important for you, please consider the coloring 
 options. Coloring will increase the overall execution time and
 communication, but it is possible to combine coloring with
-other heuristics. Relevant discussion in the following paper: 
+other heuristics to improve the performance. Relevant discussion 
+in the following paper: 
 https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=8547534
 
-Vite could be downloaded from (please don't use the past
+Vite can be downloaded from (please don't use the past
 PNNL/PNL link to download Vite mentioned in the paper, the 
 current GitHub link is the correct one):
 https://github.com/Exa-Graph/vite
