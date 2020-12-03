@@ -168,7 +168,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
               else
                   iss >> v0 >> ch >> v1 >> ch >> info;
 
-              if (!indexOneBased) {
+              if (indexOneBased) {
                   v0--; 
                   v1--;
               }
@@ -219,11 +219,10 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
   MPI_Allreduce(&numEdges, &globalNumEdges, 1, MPI_GRAPH_TYPE, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&max_v, &globalNumVertices, 1, MPI_GRAPH_TYPE, MPI_MAX, MPI_COMM_WORLD);
   
-  if (!indexOneBased)
-      globalNumVertices += 1;
+  globalNumVertices += 1;
 
   if (rank == 0) {
-      std::cout << "Graph #nvertices: " << globalNumVertices << ", #edges: " << globalNumEdges << std::endl;
+      std::cout << "Graph #nvertices (unmodified): " << globalNumVertices << ", #edges: " << globalNumEdges << std::endl;
       std::cout << "Starting to store the file data..." << std::endl;
   }
   
@@ -314,7 +313,7 @@ void loadParallelFileShards(int rank, int nprocs, int naggr,
                   else
                       iss >> v0 >> ch >> v1 >> ch >> info;
 
-                  if (!indexOneBased) {
+                  if (indexOneBased) {
                       v0--; 
                       v1--;
                   }

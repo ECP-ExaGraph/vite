@@ -123,7 +123,7 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath,
 			  else
 				  iss >> v0 >> ch >> v1 >> ch >> info;
 
-			  if (!indexOneBased) {
+			  if (indexOneBased) {
 				  v0--; 
 				  v1--;
 			  }
@@ -132,9 +132,6 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath,
 			  v0 += v_lo;
 			  v1 += v_hi;
 
-			  if (v0 == v1)
-				  continue;
-					  
                           if (v0 > maxVertex)
 				  maxVertex = v0;
 			  if (v1 > maxVertex)
@@ -149,8 +146,12 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath,
 			  if (wtype == ABS_WEIGHT)
 				  w = std::fabs(w);
 
-			  edgeList.emplace_back(v0, v1, w);
-			  edgeList.emplace_back(v1, v0, w);
+			  if (v0 != v1) {
+				  edgeList.emplace_back(v0, v1, w);
+				  edgeList.emplace_back(v1, v0, w);
+			  }
+			  else 
+				  edgeList.emplace_back(v0, v1, w);
 		  }
 
 		  // close current shard
@@ -158,10 +159,7 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath,
 	  }
   }
 
-  if (!indexOneBased)
-	  numVertices = maxVertex + 1;
-  else
-	  numVertices = maxVertex;
+  numVertices = maxVertex + 1;
   numEdges = edgeList.size();
   double t2 = mytimer();  
   
@@ -170,12 +168,13 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath,
   std::cout << "Time taken for serial file I/O: " << (t2 - t0) << " secs." << std::endl;
 
   /// Part 1.5: remap vertex IDs   
-
+  /// edgelist is unsorted, so two loops needed
   std::vector< GraphElem > vertexMap(numVertices, 0);
   for (GraphElem i = 0; i < numEdges; i++) {
 
-	  if (vertexMap[edgeList[i].i_] == 0) 
-              vertexMap[edgeList[i].i_] = 1;
+	  if (vertexMap[edgeList[i].i_] == 0) {
+              vertexMap[edgeList[i].i_] = 1; 
+          }
   }
 
   for (GraphElem i = 0; i < numVertices; i++) {
@@ -189,7 +188,7 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath,
   /// Part 2: perform edge counts and generate the binary file    
 
   numVertices = v_idx;
-  std::cout << "Updated number of vertices: " << numVertices << std::endl;
+  std::cout << "Updated #vertices, after renumbering the indices consecutively to handle gaps: " << numVertices << std::endl;
 
   std::vector< GraphElem > edgeCount(numVertices + 1, 0);
   for (GraphElem i = 0; i < numEdges; i++) {
@@ -200,10 +199,14 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath,
           assert(edgeList[i].i_ >= 0 && edgeList[i].i_ < numVertices);	  
           assert(edgeList[i].j_ >= 0 && edgeList[i].j_ < numVertices);	  
 
-	  edgeCount[edgeList[i].i_+1]++;
-	  edgeCount[edgeList[i].j_+1]++;
+	  if (edgeList[i].i_ != edgeList[i].j_) {
+		  edgeCount[edgeList[i].i_+1]++;
+		  edgeCount[edgeList[i].j_+1]++;
+	  }
+	  else
+		  edgeCount[edgeList[i].i_+1]++;
   }
-  std::cout << "Prepared the graph CSR." << std::endl;
+  std::cout << "Stored graph data as edgelist and counted number of edges per vertex for graph CSR preparation." << std::endl;
   g = new Graph(numVertices, numEdges);
   processGraphData(*g, edgeCount, edgeList, numVertices, numEdges);
 
