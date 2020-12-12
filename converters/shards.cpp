@@ -146,12 +146,15 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath,
 			  if (wtype == ABS_WEIGHT)
 				  w = std::fabs(w);
 
+		          edgeList.emplace_back(v0, v1, w);
+                          /*
 			  if (v0 != v1) {
 				  edgeList.emplace_back(v0, v1, w);
 				  edgeList.emplace_back(v1, v0, w);
 			  }
 			  else 
 				  edgeList.emplace_back(v0, v1, w);
+                          */
 		  }
 
 		  // close current shard
@@ -196,15 +199,11 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath,
           edgeList[i].i_ = vertexMap[edgeList[i].i_];
           edgeList[i].j_ = vertexMap[edgeList[i].j_];
 
-          assert(edgeList[i].i_ >= 0 && edgeList[i].i_ < numVertices);	  
-          assert(edgeList[i].j_ >= 0 && edgeList[i].j_ < numVertices);	  
+	  assert(edgeList[i].i_ >= 0 && edgeList[i].i_ < numVertices);	  
+	  assert(edgeList[i].j_ >= 0 && edgeList[i].j_ < numVertices);	  
 
-	  if (edgeList[i].i_ != edgeList[i].j_) {
-		  edgeCount[edgeList[i].i_+1]++;
-		  edgeCount[edgeList[i].j_+1]++;
-	  }
-	  else
-		  edgeCount[edgeList[i].i_+1]++;
+	  edgeCount[edgeList[i].i_+1]++;
+	  //edgeCount[edgeList[i].j_+1]++;
   }
   std::cout << "Stored graph data as edgelist and counted number of edges per vertex for graph CSR preparation." << std::endl;
   g = new Graph(numVertices, numEdges);
