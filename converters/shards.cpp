@@ -172,10 +172,10 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath,
 
   /// Part 1.5: remap vertex IDs   
   /// edgelist is unsorted, so two loops needed
-  std::vector< GraphElem > vertexMap(numVertices, 0);
+  std::vector< GraphElem > vertexMap(numVertices, -1);
   for (GraphElem i = 0; i < numEdges; i++) {
 
-	  if (vertexMap[edgeList[i].i_] == 0) {
+	  if (vertexMap[edgeList[i].i_] == -1) {
               vertexMap[edgeList[i].i_] = 1; 
           }
   }
@@ -187,6 +187,32 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath,
               v_idx += 1;
           }
   }
+
+#ifdef PRINT_VERTEX_MAP
+  std::string outFileName = std::to_string(numVertices);
+  outFileName += ".mappings";
+
+  std::ofstream ofs;
+  ofs.open(outFileName.c_str(), std::ios::out);
+
+  if (!ofs) {
+	  std::cerr << "Error creating community file: " << outFileName << std::endl;
+	  exit(EXIT_FAILURE);
+  }
+
+  // write the data
+  for (GraphElem i = 0; i < numVertices; i++) {
+      if (vertexMap[i] != -1)
+          ofs << i << " " << vertexMap[i] << "\n";
+  }
+
+  ofs.close();
+
+  std::cout << std::endl;
+  std::cout << "-----------------------------------------------------" << std::endl;
+  std::cout << "Saved vertex mapping information on file: " << outFileName << std::endl;
+  std::cout << "-----------------------------------------------------" << std::endl;
+#endif
 
   /// Part 2: perform edge counts and generate the binary file    
 
