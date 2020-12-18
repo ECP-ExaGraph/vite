@@ -2317,9 +2317,13 @@ device(me % ndevs)
 #ifdef DEBUG_PRINTF  
   const double t1 = MPI_Wtime();
 #endif
-
+#if defined(ABS_MOD_PER_ITER)
   GraphWeight currMod = std::fabs((e_a_xx[0] * constantForSecondTerm) - 
                         (e_a_xx[1] * constantForSecondTerm * constantForSecondTerm));
+#else
+  GraphWeight currMod = ((e_a_xx[0] * constantForSecondTerm) - 
+                        (e_a_xx[1] * constantForSecondTerm * constantForSecondTerm));
+#endif
 #ifdef DEBUG_PRINTF  
   ofs << "le_xx: " << le_xx << ", la2_x: " << la2_x << std::endl;
   ofs << "e_xx: " << e_a_xx[0] << ", a2_x: " << e_a_xx[1] << ", currMod: " << currMod << std::endl;
