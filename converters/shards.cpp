@@ -80,7 +80,7 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath,
   assert(fileEndIndex >= 0);
   assert(fileEndIndex >= fileStartIndex);
   
-  GraphElem numFiles = 0, numEdges, numVertices, v_idx = 0, maxVertex = -1;
+  GraphElem numFiles = 0, numEdges = 0, numVertices, v_idx = 0, maxVertex = -1;
   std::vector<GraphElemTuple> edgeList;
 
   /// Part 1: Read the file shards 
@@ -146,15 +146,12 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath,
 			  if (wtype == ABS_WEIGHT)
 				  w = std::fabs(w);
 
-		          edgeList.emplace_back(v0, v1, w);
-                          /*
 			  if (v0 != v1) {
 				  edgeList.emplace_back(v0, v1, w);
 				  edgeList.emplace_back(v1, v0, w);
 			  }
 			  else 
 				  edgeList.emplace_back(v0, v1, w);
-                          */
 		  }
 
 		  // close current shard
@@ -162,8 +159,8 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath,
 	  }
   }
 
-  numVertices = maxVertex + 1;
   numEdges = edgeList.size();
+  numVertices = maxVertex + 1;
   double t2 = mytimer();  
   
   std::cout << "Read " << numFiles << " file shards (undirected data)." << std::endl;
@@ -177,6 +174,9 @@ void loadFileShards(Graph *&g, const std::string &fileInShardsPath,
 
 	  if (vertexMap[edgeList[i].i_] == -1) {
               vertexMap[edgeList[i].i_] = 1; 
+          }
+	  if (vertexMap[edgeList[i].j_] == -1) {
+              vertexMap[edgeList[i].j_] = 1; 
           }
   }
 
