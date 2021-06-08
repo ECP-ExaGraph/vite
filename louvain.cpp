@@ -1937,6 +1937,204 @@ GraphWeight distLouvainMethodVertexOrder(const int me, const int nprocs, const D
   return prevMod;
 } // distLouvainMethodVertexOrder with early termination
 
+GraphWeight distLouvainMethodWithColoringCommOpt(const int me, const int nprocs, const DistGraph &dg,
+        const long numColor, const ColorVector &vertexColor, size_t &ssz, size_t &rsz, 
+        std::vector<GraphElem> &ssizes, std::vector<GraphElem> &rsizes, 
+        std::vector<GraphElem> &svdata, std::vector<GraphElem> &rvdata,
+        CommunityVector &cvect, const GraphWeight lower, const GraphWeight thresh, 
+        int& iters)
+{
+  // if no colors, then fall back to original distLouvain  
+  if (numColor == 1) {
+      ofs << "No color specified, executing non-color Louvain..." << std::endl;
+      return distLouvainMethod(me, nprocs, dg, ssz, rsz, ssizes, 
+              rsizes, svdata, rvdata, cvect, lower, thresh, iters);
+  }
+    
+  CommunityVector pastComm, currComm, targetComm; 
+  GraphWeightVector vDegree;
+  GraphWeightVector clusterWeight;
+  CommVector localCinfo, localCupdate;
+
+  VertexCommMap remoteComm;
+  CommMap remoteCinfo, remoteCupdate;
+  
+  const Graph &g = dg.getLocalGraph();
+  const GraphElem tnv = dg.getTotalNumVertices();
+  const GraphElem nv = g.getNumVertices();
+  const GraphElem ne = g.getNumEdges();
+  const GraphWeight threshMod = thresh;
+
+  GraphWeight constantForSecondTerm;
+  GraphWeight prevMod = lower;
+  GraphWeight currMod = -1.0;
+  int numIters = 0;
+
+  distInitLouvain(dg, pastComm, currComm, vDegree, clusterWeight, localCinfo, 
+          localCupdate, constantForSecondTerm, me);
+  targetComm.resize(nv);
+
+#ifdef DEBUG_PRINTF  
+  ofs << "constantForSecondTerm: " << constantForSecondTerm << std::endl;
+#endif
+  const GraphElem base = dg.getBase(me), bound = dg.getBound(me);
+  double t0, t1;
+
+#ifdef DEBUG_PRINTF  
+  t0 = MPI_Wtime();
+#endif
+  exchangeVertexReqs(dg, ssz, rsz, ssizes, rsizes, 
+          svdata, rvdata, me, nprocs);
+#ifdef DEBUG_PRINTF  
+  t1 = MPI_Wtime();
+  ofs << "Initial communication setup time: " << (t1 - t0) << std::endl;
+#endif
+
+  /*** Create a CSR-like datastructure for vertex-colors ***/
+  std::vector<long> colorPtr(numColor+1,0);
+  std::vector<long> colorIndex(nv,0);
+  std::vector<long> colorAdded(numColor,0);
+
+  // Count the size of each color	
+#ifdef OMP_SCHEDULE_RUNTIME
+#pragma omp parallel for firstprivate(numColor) schedule(runtime)
+#else
+#pragma omp parallel for firstprivate(numColor) schedule(static)
+#endif
+  for(long i=0; i < nv; i++) {
+      const long start = (vertexColor[i] < 0)?(numColor-1):vertexColor[i];
+#pragma omp atomic update
+      colorPtr[start+1] += 1;
+  }
+
+  //Prefix sum:
+  for(long i=0; i<numColor; i++) {
+      colorPtr[i+1] += colorPtr[i];
+  }	
+  long added = -1;
+  //Group vertices with the same color in particular order
+#ifdef OMP_SCHEDULE_RUNTIME
+#pragma omp parallel for firstprivate(numColor) schedule(runtime)
+#else
+#pragma omp parallel for firstprivate(numColor) schedule(static)
+#endif
+  for (long i=0; i<nv; i++) {
+      const long start = (vertexColor[i] < 0)?(numColor-1):vertexColor[i];
+#pragma omp atomic capture
+      added = colorAdded[start] += 1;
+      const long vindex = colorPtr[start] + added;
+      colorIndex[vindex] = i;
+  }
+
+  while(true) {
+      
+#ifdef DEBUG_PRINTF  
+      const double t2 = MPI_Wtime();
+      ofs << "Starting iteration: " << numIters << std::endl;
+#endif      
+      numIters++;	
+#ifdef DEBUG_PRINTF  
+      t0 = MPI_Wtime();
+#endif
+
+#ifdef OMP_SCHEDULE_RUNTIME
+#pragma omp parallel for shared(clusterWeight) schedule(runtime)
+#else
+#pragma omp parallel for schedule(static) shared(clusterWeight)
+#endif
+      for (GraphElem i = 0L; i < nv; i++)
+          clusterWeight[i] = 0;
+
+      // Color loop
+      for(long ci = 0; ci < numColor; ci++) {
+
+          fillRemoteCommunities(dg, me, nprocs, ssz, rsz, ssizes, 
+                  rsizes, svdata, rvdata, currComm, localCinfo, 
+                  remoteCinfo, remoteComm, remoteCupdate);
+
+          const long coloradj1 = colorPtr[ci];
+          const long coloradj2 = colorPtr[ci+1];
+
+#ifdef OMP_SCHEDULE_RUNTIME
+#pragma omp parallel for shared(clusterWeight, localCupdate, currComm, targetComm, \
+        vDegree, localCinfo, remoteCinfo, remoteComm, dg, remoteCupdate, pastComm), \
+          firstprivate(me, constantForSecondTerm) schedule(runtime)
+#else
+#pragma omp parallel for shared(clusterWeight, localCupdate, currComm, targetComm, \
+        vDegree, localCinfo, remoteCinfo, remoteComm, dg, remoteCupdate, pastComm), \
+          firstprivate(me, constantForSecondTerm) schedule(static)
+#endif
+          for (long K = coloradj1; K < coloradj2; K++) {
+              distExecuteLouvainIteration(colorIndex[K], dg, currComm, targetComm, 
+                      vDegree, localCinfo, localCupdate, remoteComm, remoteCinfo, 
+                      remoteCupdate, constantForSecondTerm, clusterWeight, me);
+          }
+
+          // update local cinfo
+#ifdef OMP_SCHEDULE_RUNTIME
+#pragma omp parallel for shared(localCinfo, localCupdate) schedule(runtime)
+#else
+#pragma omp parallel for shared(localCinfo, localCupdate) schedule(static)
+#endif          
+          for (GraphElem i = 0; i < nv; i++) {
+              localCinfo[i].size += localCupdate[i].size;
+              localCinfo[i].degree += localCupdate[i].degree;
+
+              localCupdate[i].size = 0;
+              localCupdate[i].degree = 0;
+          }
+          
+          updateRemoteCommunities(dg, localCinfo, remoteCupdate, me, nprocs);
+      } // end of Color loop
+#ifdef DEBUG_PRINTF  
+      t1 = MPI_Wtime();
+      ofs << "Color iteration computation time: " << (t1 - t0) << std::endl;
+#endif      
+      
+      // global modularity
+      currMod = distComputeModularity(g, localCinfo, clusterWeight, constantForSecondTerm, me);
+      if ((currMod - prevMod) < threshMod) {
+#ifdef DEBUG_PRINTF  
+          ofs << "Break here - no updates " << std::endl;
+#endif
+          break;
+      }
+      
+      prevMod = currMod;
+      if (prevMod < lower)
+          prevMod = lower;   
+
+#ifdef OMP_SCHEDULE_RUNTIME
+#pragma omp parallel for \
+      shared(pastComm, currComm, targetComm) \
+      schedule(runtime)
+#else
+#pragma omp parallel for \
+      shared(pastComm, currComm, targetComm) \
+      schedule(static)
+#endif
+      for (GraphElem i = 0L; i < nv; i++) {    
+          GraphElem tmp = pastComm[i];
+          pastComm[i] = currComm[i];
+          currComm[i] = targetComm[i];
+          targetComm[i] = tmp;       
+      }
+  }; // end while loop
+
+  cvect = pastComm;  
+  iters = numIters;
+  
+  vDegree.clear();
+  pastComm.clear();
+  currComm.clear();
+  targetComm.clear();
+  clusterWeight.clear();
+  localCinfo.clear();
+  localCupdate.clear();
+  
+  return prevMod;
+} // distLouvainMethodWithColoring + comm buffering
+
 void distInitLouvain(const DistGraph &dg, CommunityVector &pastComm, 
         CommunityVector &currComm, GraphWeightVector &vDegree, 
         GraphWeightVector &clusterWeight, CommVector &localCinfo, 
@@ -2911,6 +3109,144 @@ void updateRemoteCommunities(const DistGraph &dg, CommVector &localCinfo,
   ofs << "Update remote community MPI time: " << (t3 - t2) << std::endl;
 #endif
 } // updateRemoteCommunities
+
+void updateRemoteCommunitiesNonBlocking(const DistGraph &dg, CommVector &localCinfo,
+			     const CommMap &remoteCupdate,
+			     const int me, const int nprocs, 
+           const int numColors)
+{
+  const GraphElem base = dg.getBase(me), bound = dg.getBound(me);
+
+  std::vector<CommInfoVector> remoteArray(nprocs);
+
+#ifdef DEBUG_PRINTF  
+  ofs << "Starting update remote communities for colored graphs" << std::endl;
+#endif
+
+  // FIXME TODO can we use TBB::concurrent_vector instead,
+  // first we have to get rid of maps
+  for (CommMap::const_iterator iter = remoteCupdate.begin(); iter != remoteCupdate.end(); iter++) {
+      const GraphElem i = iter->first;
+      const Comm &curr = iter->second;
+
+      const int tproc = dg.getOwner(i);
+
+#ifdef DEBUG_PRINTF  
+      assert(tproc != me);
+#endif
+      CommInfo rcinfo;
+
+      rcinfo.community = i;
+      rcinfo.size = curr.size;
+      rcinfo.degree = curr.degree;
+
+      remoteArray[tproc].push_back(rcinfo);
+  }
+
+  std::vector<GraphElem> send_sz(nprocs), recv_sz(nprocs);
+
+#ifdef DEBUG_PRINTF  
+  double tc = 0.0;
+  const double t0 = MPI_Wtime();
+#endif
+
+#ifdef OMP_SCHEDULE_RUNTIME
+#pragma omp parallel for schedule(runtime)
+#else
+#pragma omp parallel for schedule(static)
+#endif
+  for (int i = 0; i < nprocs; i++) {
+    send_sz[i] = remoteArray[i].size();
+  }
+
+  MPI_Alltoall(send_sz.data(), 1, MPI_GRAPH_TYPE, recv_sz.data(), 
+          1, MPI_GRAPH_TYPE, MPI_COMM_WORLD);
+
+#ifdef DEBUG_PRINTF  
+  const double t1 = MPI_Wtime();
+  tc += (t1 - t0);
+#endif
+
+  GraphElem rcnt = 0, scnt = 0;
+#ifdef OMP_SCHEDULE_RUNTIME
+#pragma omp parallel for shared(recv_sz, send_sz) \
+  reduction(+:rcnt, scnt) schedule(runtime)
+#else
+#pragma omp parallel for shared(recv_sz, send_sz) \
+  reduction(+:rcnt, scnt) schedule(static)
+#endif
+  for (int i = 0; i < nprocs; i++) {
+    rcnt += recv_sz[i];
+    scnt += send_sz[i];
+  }
+#ifdef DEBUG_PRINTF  
+  ofs << "Total number of remote communities to update: " << scnt << std::endl;
+#endif
+
+  GraphElem currPos = 0;
+  CommInfoVector rdata(rcnt);
+
+#ifdef DEBUG_PRINTF  
+  const double t2 = MPI_Wtime();
+#endif
+#if defined(USE_MPI_SENDRECV)
+  for (int i = 0; i < nprocs; i++) {
+      if (i != me)
+          MPI_Sendrecv(remoteArray[i].data(), send_sz[i], commType, i, CommunityDataTag, 
+                  rdata.data() + currPos, recv_sz[i], commType, i, CommunityDataTag, 
+                  MPI_COMM_WORLD, MPI_STATUSES_IGNORE);
+
+      currPos += recv_sz[i];
+  }
+#else
+  std::vector<MPI_Request> sreqs(nprocs), rreqs(nprocs);
+  for (int i = 0; i < nprocs; i++) {
+    if (i != me)
+      MPI_Irecv(rdata.data() + currPos, recv_sz[i], commType, i, 
+              CommunityDataTag, MPI_COMM_WORLD, &rreqs[i]);
+    else
+      rreqs[i] = MPI_REQUEST_NULL;
+
+    currPos += recv_sz[i];
+  }
+
+  for (int i = 0; i < nprocs; i++) {
+    if (i != me)
+      MPI_Isend(remoteArray[i].data(), send_sz[i], commType, i, 
+              CommunityDataTag, MPI_COMM_WORLD, &sreqs[i]);
+    else
+      sreqs[i] = MPI_REQUEST_NULL;
+  }
+
+  MPI_Waitall(nprocs, sreqs.data(), MPI_STATUSES_IGNORE);
+  MPI_Waitall(nprocs, rreqs.data(), MPI_STATUSES_IGNORE);
+#endif
+#ifdef DEBUG_PRINTF  
+  const double t3 = MPI_Wtime();
+  tc += (t3 - t2);
+#endif
+
+#ifdef OMP_SCHEDULE_RUNTIME
+#pragma omp parallel for shared(rdata, localCinfo) schedule(runtime)
+#else
+#pragma omp parallel for shared(rdata, localCinfo) schedule(dynamic)
+#endif
+  for (GraphElem i = 0; i < rcnt; i++) {
+    const CommInfo &curr = rdata[i];
+
+#ifdef DEBUG_PRINTF  
+    assert(dg.getOwner(curr.community) == me);
+#endif
+    localCinfo[curr.community-base].size += curr.size;
+    localCinfo[curr.community-base].degree += curr.degree;
+  }
+
+#ifdef DEBUG_PRINTF  
+  ofs << "Update remote community MPI time: " << (t3 - t2) << std::endl;
+#endif
+} // updateRemoteCommunities
+
+
 
 void exchangeVertexReqs(const DistGraph &dg, size_t &ssz, size_t &rsz,
         std::vector<GraphElem> &ssizes, std::vector<GraphElem> &rsizes, 
