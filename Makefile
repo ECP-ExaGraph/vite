@@ -1,7 +1,7 @@
 # change to CC for Cray systems
-CXX = CC
+CXX = mpicxx
 
-OPTFLAGS = -g -O3 -xHost -fopenmp -DDONT_CREATE_DIAG_FILES #-DDEBUG_PRINTF -DCHECK_COLORING_CONFLICTS
+OPTFLAGS = -g -O3 -fopenmp -DDONT_CREATE_DIAG_FILES #-DDEBUG_PRINTF -DCHECK_COLORING_CONFLICTS
 # use export ASAN_OPTIONS=verbosity=1 to check ASAN output
 SNTFLAGS = -std=c++11 -fopenmp -fsanitize=address -O1 -fno-omit-frame-pointer
 CXXFLAGS = -std=c++11 $(OPTFLAGS) #-DUSE_MPI_COLLECTIVES #-DUSE_32_BIT_GRAPH  #-DDEBUG_PRINTF
