@@ -215,7 +215,7 @@ int main(int argc, char *argv[])
   }
 
   GraphWeight currMod = -1.0, prevMod = -1.0;
-  double total=0.0, ctime=0.0;
+  double total=(td1 - td0), ctime=0.0;
   int phase = 0, short_phase = 0;
 
   int iters = 0, tot_iters = 0;
@@ -523,13 +523,15 @@ int main(int argc, char *argv[])
       std::cout << "-------------------------------------------------------" << std::endl;
       std::cout << "Average total time (secs.): " << (tot_time/nprocs) << std::endl;
       std::cout << "Average time for clustering (secs.): " << (ctot_time/nprocs) << std::endl;
-      std::cout << "TEPS: " << (double)teps/(double)(tot_time/nprocs) << std::endl;
+      std::cout << "MODS (final modularity * average clustering time): " << (currMod * (ctot_time/nprocs)) << std::endl;
+      std::cout << "TEPS (traversed edges across clustering iterations): " << (double)teps/(double)(ctot_time/nprocs) << std::endl;
       std::cout << "-------------------------------------------------------" << std::endl;
 #else
       ofs << "--------------------------------------------------------------" << std::endl;
       ofs<< "Average (over processes) total time (secs.): "<< (tot_time/nprocs)<<std::endl;
       ofs << "Average time for clustering (secs.): " << (ctot_time/nprocs) << std::endl;
-      ofs<< "TEPS: " << (double)teps/(double)(tot_time/nprocs) <<std::endl;
+      ofs << "MODS (final modularity * average clustering time): " << (currMod * (ctot_time/nprocs)) << std::endl;
+      ofs<< "TEPS (traversed edges acrss clustering iterations): " << (double)teps/(double)(ctot_time/nprocs) <<std::endl;
       ofs << "--------------------------------------------------------------" << std::endl;
 #endif
   }
