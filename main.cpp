@@ -215,7 +215,7 @@ int main(int argc, char *argv[])
   }
 
   GraphWeight currMod = -1.0, prevMod = -1.0;
-  double total=0, ctime=0;
+  double total=0.0, ctime=0.0;
   int phase = 0, short_phase = 0;
 
   int iters = 0, tot_iters = 0;
@@ -239,7 +239,7 @@ int main(int argc, char *argv[])
 
   // outermost loop
   while(1) {
-    double ptotal = 0;
+    double ptotal = 0.0;
     
     // if threshold-scaling is ON, then
     // use larger threshold towards the
