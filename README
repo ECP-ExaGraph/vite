@@ -254,14 +254,14 @@ We also have bindings to NetworKit[*], that can help generate random and scale
 free graphs, but this option is actively supported and may be purged from future
 Vite versions. This is mostly serial, but NetworKit internally may use OpenMP. 
 
-Note: We have only tested with NetworKit v4.2, and have no plans on supporting 
-other NetworKit versions (we will most probably remove this option from 
-future releases).
+Note: We have only tested with NetworKit GitHub main (circa Oct 2023), and have no 
+plans on supporting other NetworKit versions (we will most probably remove this option 
+from future releases).
 
-[*] https://networkit.iti.kit.edu/
+[*] https://networkit.github.io/
 
-Install C++ module of NetworKit, by following instructions from:
-https://networkit.iti.kit.edu/get_started.html#build-networkit-from-source
+Networkit can be built from GitHub: 
+git clone --recursive https://github.com/networkit/networkit.git
 
 Possible options (can be combined):
 1.  -e               : Generate ER graph
