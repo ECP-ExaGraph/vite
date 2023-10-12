@@ -60,8 +60,8 @@
 #include "nkit-er.hpp"
 #include "../utils.hpp"
 
-#include <NetworKit/Globals.h>
-#include <NetworKit/generators/HyperbolicGenerator.h>
+#include "networkit/Globals.hpp"
+#include "networkit/generators/HyperbolicGenerator.hpp"
 
 void generateHG(Graph *&g, unsigned int N, bool randomEdgeWeight=false)
 {    

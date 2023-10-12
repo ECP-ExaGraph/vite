@@ -60,9 +60,9 @@
 #include "nkit-er.hpp"
 #include "../utils.hpp"
 
-#include <NetworKit/Globals.h>
+#include "networkit/Globals.hpp"
 
-#include <NetworKit/graph/GraphBuilder.h>
+#include "networkit/graph/GraphBuilder.hpp"
 
 void generateER(Graph *&g, unsigned int N, double p, bool randomEdgeWeight)
 {
@@ -99,7 +99,7 @@ void generateER(Graph *&g, unsigned int N, double p, bool randomEdgeWeight)
             builder.addHalfEdge(u, v);
             }
             });
-    G = builder.toGraph(true, false);
+    G = builder.completeGraph(true);
 
     /* Generate binary file containing edgelist */
     GraphElem numEdges = G.numberOfEdges();

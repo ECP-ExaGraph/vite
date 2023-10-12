@@ -265,17 +265,16 @@ https://networkit.iti.kit.edu/get_started.html#build-networkit-from-source
 
 Possible options (can be combined):
 1.  -e               : Generate ER graph
-2.  -r               : Generate RGG graph
+2.  -g               : Generate RGG graph
 3.  -b               : Generate Barabasi-Albert graph
 4.  -h               : Generate hyperbolic graph
-5.  -n <...>         : Number of (max) nodes/vertices
-6.  -p <...>         : Probability for edge creation (for ER graph)
+5.  -p <...>         : Probability for edge creation (for ER graph)
+6.  -n <...>         : Number of (max) nodes/vertices
 7.  -k <...>         : Number of clusters for RGG (each unit square is divided into
                        clusters where edges are created within) OR attachments per
                        node for Barabasi-Albert graph
 8.  -m <...>         : Initial nodes attached for Barabasi-Albert                      
-9.  -z               : Visualize RGG graph (EPS file with graph visualization created)
-10. -r               : Create random edge weights 
+9.  -r               : Create random edge weights 
 
 ***********************
 -----------------------

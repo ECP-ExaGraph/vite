@@ -52,6 +52,6 @@
 
 #include "../graph.hpp"
 
-void generateRGG(Graph *&g, unsigned int N, unsigned int k, bool randomEdgeWeight=false, bool vizRGG=false);
+void generateRGG(Graph *&g, unsigned int N, unsigned int k, bool randomEdgeWeight=false);
 
 #endif // __NETWORKIT_RGG_H

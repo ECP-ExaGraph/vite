@@ -60,8 +60,8 @@
 #include "nkit-er.hpp"
 #include "../utils.hpp"
 
-#include <NetworKit/Globals.h>
-#include <NetworKit/generators/BarabasiAlbertGenerator.h>
+#include "networkit/Globals.hpp"
+#include "networkit/generators/BarabasiAlbertGenerator.hpp"
 
 void generateBA(Graph *&g, unsigned int Nmax, unsigned int m0, unsigned int ki, bool randomEdgeWeight=false)
 {

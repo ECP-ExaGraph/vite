@@ -57,15 +57,11 @@
 #include "nkit-rgg.hpp"
 #include "../utils.hpp"
 
-#include <NetworKit/Globals.h>
+#include "networkit/Globals.hpp"
 
-#include <NetworKit/viz/PostscriptWriter.h>
-#include <NetworKit/viz/FruchtermanReingold.h>
-#include <NetworKit/viz/MultilevelLayouter.h>
+#include "networkit/generators/ClusteredRandomGraphGenerator.hpp"
 
-#include <NetworKit/generators/ClusteredRandomGraphGenerator.h>
-
-void generateRGG(Graph *&g, unsigned int N, unsigned int k, bool randomEdgeWeight, bool vizRGG) 
+void generateRGG(Graph *&g, unsigned int N, unsigned int k, bool randomEdgeWeight) 
 {
     if (!N || !k)
     {
@@ -114,26 +110,4 @@ void generateRGG(Graph *&g, unsigned int N, unsigned int k, bool randomEdgeWeigh
 
     std::cout << "Total time to generate RGG graph with N = " << N << 
         " and k = " << k << ": " << (t2-t1) << " secs\n";
-
-    // visualization, write graph to file
-    if (vizRGG)
-    {
-        t1 = mytimer(); 
-        std::ostringstream of;
-        of << "RGG" << N << "-" << k << ".eps";
-        std::cout << "Graph visualization will be stored in file: " << of.str() << std::endl; 
- 	G.initCoordinates();
-
- 	// draw (independent of clustering) and write again
- 	NetworKit::Point<float> bl(0.0, 0.0);
- 	NetworKit::Point<float> tr(1.0, 1.0);
-
- 	NetworKit::FruchtermanReingold fdLayouter(bl, tr);
- 	fdLayouter.draw(G);
-
-        NetworKit::PostscriptWriter psWriter(true);
-        psWriter.write(G, of.str());
-        t2 = mytimer();
-        std::cout << "Time to visualize graph: " << (t2-t1) << " secs\n";
-    }
 }

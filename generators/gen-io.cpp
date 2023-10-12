@@ -77,8 +77,6 @@ static double p = 0.0;      // probability
 static unsigned int k = 0;  // nclusters
 static unsigned int m0 = 0;  // initial attached vertices
 
-static bool vizRGG = false; // visualize RGG graph
-
 static bool erGen       = false;  // ER
 static bool rggGen      = false;  // RGG
 static bool baGen       = false;  // Barabasi-Albert
@@ -102,7 +100,7 @@ int main(int argc, char *argv[])
   if (erGen)
       generateER(g, N, p, randomEdgeWeight);
   else if (rggGen)
-      generateRGG(g, N, k, randomEdgeWeight, vizRGG);
+      generateRGG(g, N, k, randomEdgeWeight);
   else if (baGen)
       generateBA(g, N, m0, k, randomEdgeWeight);
   else if (hgGen)
@@ -166,7 +164,7 @@ void parseCommandLine(const int argc, char * const argv[])
 {
   int ret;
 
-  while ((ret = getopt(argc, argv, "o:en:p:bhgm:k:rz")) != -1) {
+  while ((ret = getopt(argc, argv, "o:en:p:bhgm:k:r")) != -1) {
     switch (ret) {
     case 'o':
       outputFileName.assign(optarg);
@@ -197,9 +195,6 @@ void parseCommandLine(const int argc, char * const argv[])
       break;
     case 'm':
       m0 = atoi(optarg);
-      break;
-    case 'z':
-      vizRGG = true;
       break;
     default:
       assert(0 && "Incorrect parameter!!");
