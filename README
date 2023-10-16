@@ -264,14 +264,15 @@ Networkit can be built from GitHub:
 git clone --recursive https://github.com/networkit/networkit.git
 
 Possible options (can be combined):
-1.  -e               : Generate ER graph
-2.  -g               : Generate RGG graph
+1.  -e               : Generate Erdos-Renyi random (ER) graph
+2.  -c               : Generate Clustered Random Graph (CRG)
 3.  -b               : Generate Barabasi-Albert graph
 4.  -h               : Generate hyperbolic graph
 5.  -p <...>         : Probability for edge creation (for ER graph)
 6.  -n <...>         : Number of (max) nodes/vertices
-7.  -k <...>         : Number of clusters for RGG (each unit square is divided into
-                       clusters where edges are created within) OR attachments per
+7.  -k <...>         : Number of clusters for CRG (each unit square is 
+                       divided into clusters where edges are created 
+                       within) OR attachments per
                        node for Barabasi-Albert graph
 8.  -m <...>         : Initial nodes attached for Barabasi-Albert                      
 9.  -r               : Create random edge weights 

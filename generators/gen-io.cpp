@@ -64,7 +64,7 @@
 #include "../utils.hpp"
 
 #include "nkit-er.hpp"
-#include "nkit-rgg.hpp"
+#include "nkit-crg.hpp"
 #include "nkit-ba.hpp"
 #include "nkit-hg.hpp"
 
@@ -78,7 +78,7 @@ static unsigned int k = 0;  // nclusters
 static unsigned int m0 = 0;  // initial attached vertices
 
 static bool erGen       = false;  // ER
-static bool rggGen      = false;  // RGG
+static bool crgGen      = false;  // RGG
 static bool baGen       = false;  // Barabasi-Albert
 static bool hgGen       = false;  // Hyperbolic
 
@@ -92,15 +92,15 @@ int main(int argc, char *argv[])
   parseCommandLine(argc, argv);
 
   // Only the following generators supported for now
-  assert(erGen || rggGen || baGen || hgGen);
+  assert(erGen || crgGen || baGen || hgGen);
 
   Graph *g = NULL;
   rusage rus;
   
   if (erGen)
       generateER(g, N, p, randomEdgeWeight);
-  else if (rggGen)
-      generateRGG(g, N, k, randomEdgeWeight);
+  else if (crgGen)
+      generateCRG(g, N, k, randomEdgeWeight);
   else if (baGen)
       generateBA(g, N, m0, k, randomEdgeWeight);
   else if (hgGen)
@@ -164,7 +164,7 @@ void parseCommandLine(const int argc, char * const argv[])
 {
   int ret;
 
-  while ((ret = getopt(argc, argv, "o:en:p:bhgm:k:r")) != -1) {
+  while ((ret = getopt(argc, argv, "o:en:p:bhcm:k:r")) != -1) {
     switch (ret) {
     case 'o':
       outputFileName.assign(optarg);
@@ -172,8 +172,8 @@ void parseCommandLine(const int argc, char * const argv[])
     case 'e':
       erGen = true;
       break;
-    case 'g':
-      rggGen = true;
+    case 'c':
+      crgGen = true;
       break;
     case 'b':
       baGen = true;
@@ -202,7 +202,7 @@ void parseCommandLine(const int argc, char * const argv[])
     }
   }
 
-  if ((erGen || rggGen || baGen || hgGen) == false) {
+  if ((erGen || crgGen || baGen || hgGen) == false) {
     std::cerr << "Must select a generator for the input file!" << std::endl;
     exit(EXIT_FAILURE);
   }

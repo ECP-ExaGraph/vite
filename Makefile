@@ -16,11 +16,11 @@ endif
 
 ENABLE_NETWORKIT=0
 ifeq ($(ENABLE_NETWORKIT),1)
-    NETWORKIT_DIR = $(HOME)/sources/NetworKit
-    CXXFLAGS += -I$(NETWORKIT_DIR)/include
-    NOBJFILES = generators/nkit-er.o generators/nkit-rgg.o generators/nkit-ba.o generators/nkit-hg.o generators/gen-io.o
+    NETWORKIT_DIR = $(HOME)/builds/networkit
+    CXXFLAGS += -std=c++14 -I$(NETWORKIT_DIR)/include
+    NOBJFILES = generators/nkit-er.o generators/nkit-crg.o generators/nkit-ba.o generators/nkit-hg.o generators/gen-io.o
     NTARGET = $(BIN)/graphGenerator
-    LDFLAGS = -L$(NETWORKIT_DIR) -lNetworKit
+		LDFLAGS = -L$(NETWORKIT_DIR)/lib -Wl,-rpath=$(NETWORKIT_DIR)/lib -lnetworkit -L$(NETWORKIT_DIR)/lib64 -Wl,-rpath=$(NETWORKIT_DIR)/lib -ltlx
 endif
 
 GOBJFILES = main.o rebuild.o distgraph.o louvain.o coloring.o compare.o
