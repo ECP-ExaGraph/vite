@@ -68,6 +68,10 @@
 #define TERMINATION_PHASE_COUNT (200)
 #endif
 
+#ifndef CONVERGENCE_THRESHOLD
+#define CONVERGENCE_THRESHOLD (1.0E-06)
+#endif
+
 // Read https://en.wikipedia.org/wiki/Linear_congruential_generator#Period_length
 // about choice of LCG parameters
 // From numerical recipes

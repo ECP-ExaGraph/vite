@@ -86,6 +86,7 @@ static bool   generateGraph             = false;
 static bool   justProcessGraph          = false;
 static GraphElem numVerticesGenGraph    = 0;
 static GraphWeight randomEdgePercent    = 0.0;
+static GraphWeight defaultThreshold     = CONVERGENCE_THRESHOLD;
 
 static bool   readBalanced              = false;
 static int    ranksPerNode              = 1;
@@ -256,10 +257,10 @@ int main(int argc, char *argv[])
         else if (short_phase >= 7 && short_phase <= 9)
             threshold = 1.0E-5;
         else if (short_phase >= 10 && short_phase <= 12)
-            threshold = 1.0E-6;
+            threshold = defaultThreshold;
     }
     else
-        threshold = 1.0E-6;
+        threshold = defaultThreshold;
 
     t1 = MPI_Wtime();
     // only invoke coloring for first phase when the graph is the largest
@@ -523,6 +524,7 @@ int main(int argc, char *argv[])
       std::cout << "-------------------------------------------------------" << std::endl;
       std::cout << "Average total time (secs.): " << (tot_time/nprocs) << std::endl;
       std::cout << "Average time for clustering (secs.): " << (ctot_time/nprocs) << std::endl;
+      std::cout << "Convergence threshold (for fixed-threshold workloads): " << threshold << std::endl;
       std::cout << "MODS (final modularity * average clustering time): " << (currMod * (ctot_time/nprocs)) << std::endl;
       std::cout << "TEPS (traversed edges across clustering iterations): " << (double)teps/(double)(ctot_time/nprocs) << std::endl;
       std::cout << "-------------------------------------------------------" << std::endl;
@@ -532,6 +534,7 @@ int main(int argc, char *argv[])
       ofs << "Average time for clustering (secs.): " << (ctot_time/nprocs) << std::endl;
       ofs << "MODS (final modularity * average clustering time): " << (currMod * (ctot_time/nprocs)) << std::endl;
       ofs<< "TEPS (traversed edges acrss clustering iterations): " << (double)teps/(double)(ctot_time/nprocs) <<std::endl;
+      std::cout << "Convergence threshold (for fixed-threshold workloads): " << threshold << std::endl;
       ofs << "--------------------------------------------------------------" << std::endl;
 #endif
   }
@@ -608,7 +611,7 @@ void parseCommandLine(const int argc, char * const argv[])
   int ret;
   char *temp; // check empty values
 
-  while ((ret = getopt(argc, argv, "f:bc:od:r:t:a:ig:zpn:e:s:j")) != -1) {
+  while ((ret = getopt(argc, argv, "f:bc:od:r:t:a:ig:zpn:e:s:jh:")) != -1) {
     switch (ret) {
     case 'f':
       inputFileName.assign(optarg);
@@ -694,6 +697,9 @@ void parseCommandLine(const int argc, char * const argv[])
       break;
     case 'j':
       justProcessGraph = true;
+      break;
+    case 'h':
+      defaultThreshold = atof(optarg);
       break;
     default:
       assert(0 && "Should not reach here!!");
