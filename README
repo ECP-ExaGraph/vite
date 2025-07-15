@@ -376,7 +376,7 @@ Possible options (can be combined):
 19. -h           : Pass a specific threshold, like `-h 1E-9` (not applicable to 
                    threshold scaling/early termination scenarios). Typically, default
                    threshold can be set using -DCONVERGENCE_THRESHOLD=1.0E-3 during 
-                   building (current default is 1E-3).
+                   building (current default is 1E-6).
 
 Running coloring variants:
 
