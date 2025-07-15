@@ -126,6 +126,7 @@ Possible options (can be combined):
 13. -z              : If the index of input graph is 1-based,
                       then this option makes it 0-based
 14. -f              : Option preceding input graph file                      
+                       
 
 ------------------------
 File conversion related
@@ -372,8 +373,12 @@ Possible options (can be combined):
                    output is a binary file as per the output file path.
 18: -j           : Just process (read or generate) the graph and exit without running
                    community detection.
+19. -h           : Pass a specific threshold, like `-h 1E-9` (not applicable to 
+                   threshold scaling/early termination scenarios). Typically, default
+                   threshold can be set using -DCONVERGENCE_THRESHOLD=1.0E-3 during 
+                   building (current default is 1E-3).
 
-Coloring:
+Running coloring variants:
 
 mpiexec -n 2 bin/graphClustering -c "4" -f karate.bin
 mpiexec -n 2 bin/graphClustering -c "8 false" -i -f karate.bin
