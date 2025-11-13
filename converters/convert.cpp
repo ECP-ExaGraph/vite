@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
   parseCommandLine(argc, argv);
 
   // Only the following formats supported for now
-  assert(dimacsFormat || metisFormat || simpleFormat || matrixMarketFormat|| simpleFormat2 || snapFormat || shardedFormat);
+  assert(dimacsFormat || metisFormat || simpleFormat || matrixMarketFormat || simpleFormat2 || simpleFormat3 || snapFormat || shardedFormat);
 
   Graph *g = NULL;
 
