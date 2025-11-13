@@ -333,12 +333,12 @@ void parseCommandLine(const int argc, char * const argv[])
   }
 
   if ((matrixMarketFormat || dimacsFormat || metisFormat || simpleFormat 
-              || simpleFormat2 || snapFormat || shardedFormat) == false) {
+              || simpleFormat2 || simpleFormat3 || snapFormat || shardedFormat) == false) {
     std::cerr << "Must select a file format for the input file!" << std::endl;
     exit(EXIT_FAILURE);
   }
   const bool fileFormat[] = { matrixMarketFormat, dimacsFormat, metisFormat, 
-      simpleFormat, simpleFormat2, snapFormat, shardedFormat};
+      simpleFormat, simpleFormat2, simpleFormat3, snapFormat, shardedFormat};
   const int numFormats = sizeof(fileFormat) / sizeof(fileFormat[0]);
 
   int numTrue = 0;
