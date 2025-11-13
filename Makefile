@@ -24,7 +24,7 @@ ifeq ($(ENABLE_NETWORKIT),1)
 endif
 
 GOBJFILES = main.o rebuild.o distgraph.o louvain.o coloring.o compare.o
-FOBJFILES = converters/convert.o converters/matrix-market.o converters/dimacs.o converters/metis.o converters/simple2.o converters/simple.o converters/snap.o converters/shards.o utils.o
+FOBJFILES = converters/convert.o converters/matrix-market.o converters/dimacs.o converters/metis.o converters/simple3.o converters/simple2.o converters/simple.o converters/snap.o converters/shards.o utils.o
 POBJFILES = parallel-converters/parallel-converter.o parallel-converters/parallel-shards.o utils.o 
 ALLOBJFILES = $(GOBJFILES) $(FOBJFILES) $(NOBJFILES) $(POBJFILES)
 

@@ -80,12 +80,14 @@ static bool dimacs_directed = false;
 static bool metisFormat = false;
 static bool simpleFormat = false;
 static bool simpleFormat2 = false;
+static bool simpleFormat3 = false;
 static bool snapFormat = false;
 static bool shardedFormat = false;
 
 static bool output = false;
 static bool indexOneBased = false;
 
+static float e_cutOff = 1.0e-2;
 // this option will override whatever 
 // weights there are in the file, and 
 // make weights 1.0 for ALL edges
@@ -172,6 +174,9 @@ int main(int argc, char *argv[])
           loadSimpleFileUn(g, inputFileName, ORG_WEIGHT);
       else
           loadSimpleFileUn(g, inputFileName, ABS_WEIGHT);
+  }
+  else if (simpleFormat3) {
+          loadSimpleFileStr(g, inputFileName, (GraphWeight)e_cutOff);
   }
   else if (snapFormat) {
       // For SNAP format files, weights are not read
@@ -274,7 +279,7 @@ void parseCommandLine(const int argc, char * const argv[])
 {
   int ret;
 
-  while ((ret = getopt(argc, argv, "f:o:md:uesnrix:zw")) != -1) {
+  while ((ret = getopt(argc, argv, "f:o:md:uesnrix:zwb:")) != -1) {
     switch (ret) {
     case 'f':
       inputFileName.assign(optarg);
@@ -300,6 +305,10 @@ void parseCommandLine(const int argc, char * const argv[])
       break;
     case 'u':
       simpleFormat2 = true;
+      break;
+    case 'b':
+      simpleFormat3 = true;
+      e_cutOff = atof(optarg);
       break;
     case 'r':
       randomEdgeWeight = true;

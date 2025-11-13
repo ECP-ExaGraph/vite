@@ -48,16 +48,102 @@
 //
 // ************************************************************************
 
-#ifndef __LOAD_SIMPLE_H
-#define __LOAD_SIMPLE_H
+#include <fstream>
+#include <iostream>
+#include <numeric>
+#include <sstream>
+#include <vector>
+#include <utility>
+#include <map>
 
-#include <string>
+#include "simple.hpp"
 
-#include "../utils.hpp"
-#include "../graph.hpp"
+/// Assuming a file with just an edge list (directed)
+/// entries above threshold will be dropped
+/// assumes zero-based indexing
+void loadSimpleFileStr(Graph *&g, const std::string &fileName, GraphWeight threshold)
+{
+  std::ifstream ifs;
 
-void loadSimpleFile(Graph *&g, const std::string &fileName, bool indexOneBased, Weight_t wtype = ABS_WEIGHT);
-void loadSimpleFileStr(Graph *&g, const std::string &fileName, GraphWeight threshold); /// for sequence TSV datasets
-void loadSimpleFileUn(Graph *&g, const std::string &fileName, bool indexOneBased, Weight_t wtype = ABS_WEIGHT);
+  double t0, t1;
+  t0 = mytimer();
 
-#endif // __LOAD_SIMPLE_H
+  ifs.open(fileName.c_str(), std::ifstream::in);
+  if (!ifs) {
+    std::cerr << "Error opening Simple format file: " << fileName << std::endl;
+    exit(EXIT_FAILURE);
+  }
+
+  std::string line;
+  GraphElem maxVertex = -1, numEdges = 0, numVertices = 0, skipLines = 0;
+  std::map<std::string, GraphElem> tokens;
+  
+  // create map of tokens
+  do {
+      std::string u_key, v_key;
+      GraphWeight w = 0.0;
+
+      std::getline(ifs, line);
+      
+      if(line[0] == '#' || line[0] == '%') {
+          skipLines++;
+          continue;
+      }
+
+      std::istringstream ss(line);
+      ss >> u_key >> v_key >> w;
+ 
+      if (w <= threshold) {
+          auto is_ok = tokens.insert({u_key, numVertices}); 
+          if (is_ok.second)
+             numVertices++;
+          numEdges++;
+      }
+  } while (!ifs.eof());
+
+  std::cout << "Loading Simple file: " << fileName << ", unique #vertices: " << numVertices << std::endl;
+
+  ifs.close();
+  
+  // reopen file for reading data
+  ifs.open(fileName.c_str(), std::ifstream::in);
+  std::vector<GraphElem> edgeCount(numVertices);
+  std::vector<GraphElemTuple> edgeList;
+
+  do {
+      GraphWeight w = 0.0;
+      std::string u_key, v_key;
+
+      std::getline(ifs, line);
+      
+      if(line[0] == '#' || line[0] == '%') {
+          skipLines++;
+          continue;
+      }
+
+      std::istringstream iss(line);
+      iss >> u_key >> v_key >> w;
+
+      if (w <= threshold) {
+	      const GraphElem u = tokens[u_key];
+	      const GraphElem v = tokens[v_key];
+
+	      edgeList.push_back({u, v, w});
+	      edgeCount[u+1]++;
+      }
+  } while (!ifs.eof());
+
+  ifs.close();
+   
+  assert(numEdges == edgeList.size());
+
+  ifs.close();
+  std::cout << "Number of edges: " << numEdges << std::endl;
+
+  g = new Graph(numVertices, numEdges);
+  processGraphData(*g, edgeCount, edgeList, numVertices, numEdges);
+
+  t1 = mytimer();  
+
+  std::cout << "Total graph processing time: " << (t1 - t0) << std::endl;
+} // loadSimpleFile
