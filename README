@@ -116,16 +116,18 @@ Possible options (can be combined):
                       information, usage e.g.: 	
                       -x "<file-path> <start-chunk> <end-chunk>"
                       Requires conformant file names.
-9. -i               : Accept weights as is from the file. If this 
+9. -b <c>           : Input graph is undirected edge list with
+                      e-value cutoff (found in biological datasets)
+10. -i              : Accept weights as is from the file. If this 
                       option is not passed, then by default the 
                       absolute value of the original weight is 
                       chosen. 
-10. -r              : Create random edge weights
-11. -w              : Initialize edge weights to 1.0
-12. -o              : Output binary file with full path
-13. -z              : If the index of input graph is 1-based,
+11. -r              : Create random edge weights
+12. -w              : Initialize edge weights to 1.0
+13. -o              : Output binary file with full path
+14. -z              : If the index of input graph is 1-based,
                       then this option makes it 0-based
-14. -f              : Option preceding input graph file                      
+15. -f              : Option preceding input graph file                      
                        
 
 ------------------------
@@ -191,6 +193,28 @@ should exactly match with the #edges of your native graph).
 
 Apart from the simple edge list formats and matrix-market formats, 
 we do not actively check the correctness of the other formats.
+
+Other special formats
+---------------------
+The -b <0-1> option could be used to convert biological datasets 
+with e-values less than specified; a snapshot for a prospective 
+dataset is provided.
+
+S4YGI1  S4YGI1  2.211E-42
+S4YGI1  A0A017T8V7      1.886E-13
+S4YGI1  A0A1M3NHW0      3.298E-07
+S4YGI1  A0A857JKL2      1.318E-02
+S4YGI1  A0A136PAL6      4.846E-01
+S4YGI1  A0A2L0TZA6      3.424E-01
+S4YGI1  A0A7C2SBZ4      8.169E-02
+S4YGI1  A0A4R2ML94      1.500E-01
+S4YGI1  A0A401X914      1.317E-01
+S4YGI1  A0A317CDH7      4.259E-02
+S4YGI1  A0A0K1Q4X4      6.028E-02
+S4YGI1  A0A2V8PSR6      3.279E-01
+...
+
+./bin/fileConvert -b 0.5 -f ./data/all-vs-all-similarity.tsv -o ./data/all-vs-all-similarity_t0.5.bin
 
 ****************************
 ----------------------------
