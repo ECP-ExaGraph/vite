@@ -72,7 +72,7 @@ void loadPajekFile(Graph *&g, const std::string &fileName, bool indexOneBased, W
     exit(EXIT_FAILURE);
   }
 
-  GraphElem maxVertex = -1, numEdges = 0, numVertices = 0, skipLines = 0;
+  GraphElem numEdges = 0, numVertices = 0;
   
   /// http://mrvar.fdv.uni-lj.si/pajek/DrawEPS.htm
   // *Arcs are directed whereas *Edges indicate undirected
@@ -96,8 +96,6 @@ void loadPajekFile(Graph *&g, const std::string &fileName, bool indexOneBased, W
 
     if( is_arcs || is_edges)
         break;
-    else
-        skipLines++;
   } while (std::getline(ifs, line));
 
   if (ifs.eof()) {
