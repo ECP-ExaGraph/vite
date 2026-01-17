@@ -108,8 +108,10 @@ void loadPajekFile(Graph *&g, const std::string &fileName, bool indexOneBased, W
     exit(EXIT_FAILURE);
   }
 
-  std::vector<GraphElem> edgeCount(numVertices + 1);
+  std::vector<GraphElem> edgeCount;
   std::vector<GraphElemTuple> edgeList;
+
+  edgeCount.resize(numVertices + 1, 0);
 
   while (std::getline(ifs, line))
   {
