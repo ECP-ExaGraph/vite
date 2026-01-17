@@ -69,6 +69,7 @@
 #include "simple.hpp"
 #include "snap.hpp"
 #include "shards.hpp"
+#include "pajek.hpp"
 
 static std::string inputFileName, outputFileName, shardedFileArgs;
 
@@ -83,6 +84,7 @@ static bool simpleFormat2 = false;
 static bool simpleFormat3 = false;
 static bool snapFormat = false;
 static bool shardedFormat = false;
+static bool pajekFormat = false;
 
 static bool output = false;
 static bool indexOneBased = false;
@@ -102,7 +104,7 @@ int main(int argc, char *argv[])
   parseCommandLine(argc, argv);
 
   // Only the following formats supported for now
-  assert(dimacsFormat || metisFormat || simpleFormat || matrixMarketFormat || simpleFormat2 || simpleFormat3 || snapFormat || shardedFormat);
+  assert(pajekFormat || dimacsFormat || metisFormat || simpleFormat || matrixMarketFormat || simpleFormat2 || simpleFormat3 || snapFormat || shardedFormat);
 
   Graph *g = NULL;
 
@@ -134,6 +136,9 @@ int main(int argc, char *argv[])
           else
               loadDimacsFileUn(g, inputFileName, ABS_WEIGHT);
       }
+  }
+  else if (pajekFormat) {
+          loadPajekFile(g, inputFileName, true, ONE_WEIGHT);
   }
   else if (metisFormat) {
       if (randomEdgeWeight)
@@ -279,7 +284,7 @@ void parseCommandLine(const int argc, char * const argv[])
 {
   int ret;
 
-  while ((ret = getopt(argc, argv, "f:o:md:uesnrix:zwb:")) != -1) {
+  while ((ret = getopt(argc, argv, "f:o:md:upesnrix:zwb:")) != -1) {
     switch (ret) {
     case 'f':
       inputFileName.assign(optarg);
@@ -289,6 +294,9 @@ void parseCommandLine(const int argc, char * const argv[])
       break;
     case 'm':
       matrixMarketFormat = true;
+      break;
+    case 'p':
+      pajekFormat = true;
       break;
     case 'd':
       dimacsFormat = true;
@@ -332,12 +340,12 @@ void parseCommandLine(const int argc, char * const argv[])
     }
   }
 
-  if ((matrixMarketFormat || dimacsFormat || metisFormat || simpleFormat 
+  if ((pajekFormat || matrixMarketFormat || dimacsFormat || metisFormat || simpleFormat 
               || simpleFormat2 || simpleFormat3 || snapFormat || shardedFormat) == false) {
     std::cerr << "Must select a file format for the input file!" << std::endl;
     exit(EXIT_FAILURE);
   }
-  const bool fileFormat[] = { matrixMarketFormat, dimacsFormat, metisFormat, 
+  const bool fileFormat[] = { pajekFormat, matrixMarketFormat, dimacsFormat, metisFormat, 
       simpleFormat, simpleFormat2, simpleFormat3, snapFormat, shardedFormat};
   const int numFormats = sizeof(fileFormat) / sizeof(fileFormat[0]);
 

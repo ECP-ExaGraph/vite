@@ -105,28 +105,29 @@ Possible options (can be combined):
 1. -n               : Input graph in SNAP format
 2. -m               : Input graph in Matrix-market format
 3. -e               : Input graph in METIS format
-4. -d               : Input graph in DIMACS format. Pass 0 or 1
+4. -p               : Input graph in Pajek format
+5. -d               : Input graph in DIMACS format. Pass 0 or 1
                       to indicate undirected/directed graph
-5. -s               : Input graph is directed edge list
-6. -u               : Input graph is undirected edge list 
+6. -s               : Input graph is directed edge list
+7. -u               : Input graph is undirected edge list 
                       (Can be used for Graph Challenge official 
                       datasets - http://graphchallenge.mit.edu/) 
-7. -x               : Read a number of files with edge list 
+8. -x               : Read a number of files with edge list 
                       information, usage e.g.: 	
                       -x "<file-path> <start-chunk> <end-chunk>"
                       Requires conformant file names.
-8. -b <c>           : Input graph is undirected edge list with
+9. -b <c>           : Input graph is undirected edge list with
                       e-value cutoff (found in biological datasets)
-9. -i               : Accept weights as is from the file. If this 
+10. -i              : Accept weights as is from the file. If this 
                       option is not passed, then by default the 
                       absolute value of the original weight is 
                       chosen. 
-10. -r              : Create random edge weights
-11. -w              : Initialize edge weights to 1.0
-12. -o              : Output binary file with full path
-13. -z              : If the index of input graph is 1-based,
+11. -r              : Create random edge weights
+12. -w              : Initialize edge weights to 1.0
+13. -o              : Output binary file with full path
+14. -z              : If the index of input graph is 1-based,
                       then this option makes it 0-based
-14. -f              : Option preceding input graph file                      
+15. -f              : Option preceding input graph file                      
                        
 ------------------------
 File conversion related
@@ -197,6 +198,11 @@ For example, to convert OGB datasets, one could use `-s` like:
 
 Other special formats
 ---------------------
+Converting graphs in Pajek* format (-p) is experimental, and assumes
+1-based indexing and weights of 1.0.
+
+[*] http://mrvar.fdv.uni-lj.si/pajek/DrawEPS.htm
+
 The -b <0-1> option could be used to convert biological datasets 
 with e-values less than specified; a snapshot for a prospective 
 dataset is provided.

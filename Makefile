@@ -20,11 +20,11 @@ ifeq ($(ENABLE_NETWORKIT),1)
     CXXFLAGS += -std=c++14 -I$(NETWORKIT_DIR)/include
     NOBJFILES = generators/nkit-er.o generators/nkit-crg.o generators/nkit-ba.o generators/nkit-hg.o generators/gen-io.o
     NTARGET = $(BIN)/graphGenerator
-		LDFLAGS = -L$(NETWORKIT_DIR)/lib -Wl,-rpath=$(NETWORKIT_DIR)/lib -lnetworkit -L$(NETWORKIT_DIR)/lib64 -Wl,-rpath=$(NETWORKIT_DIR)/lib -ltlx
+    LDFLAGS = -L$(NETWORKIT_DIR)/lib -Wl,-rpath=$(NETWORKIT_DIR)/lib -lnetworkit -L$(NETWORKIT_DIR)/lib64 -Wl,-rpath=$(NETWORKIT_DIR)/lib -ltlx
 endif
 
 GOBJFILES = main.o rebuild.o distgraph.o louvain.o coloring.o compare.o
-FOBJFILES = converters/convert.o converters/matrix-market.o converters/dimacs.o converters/metis.o converters/simple3.o converters/simple2.o converters/simple.o converters/snap.o converters/shards.o utils.o
+FOBJFILES = converters/convert.o converters/pajek.o converters/matrix-market.o converters/dimacs.o converters/metis.o converters/simple3.o converters/simple2.o converters/simple.o converters/snap.o converters/shards.o utils.o
 POBJFILES = parallel-converters/parallel-converter.o parallel-converters/parallel-shards.o utils.o 
 ALLOBJFILES = $(GOBJFILES) $(FOBJFILES) $(NOBJFILES) $(POBJFILES)
 
