@@ -194,6 +194,9 @@ should exactly match with the #edges of your native graph).
 Apart from the simple edge list formats and matrix-market formats, 
 we do not actively check the correctness of the other formats.
 
+For example, to convert OGB datasets, one could use `-s` like:
+./bin/fileConvert -s -i -f ~/data/ogb_graphs/ogbn-arxiv/ogbn-arxiv_graph.txt -o ~/data/ogb_graphs/ogbn-arxiv/ogbn-arxiv_graph.bin
+
 Other special formats
 ---------------------
 The -b <0-1> option could be used to convert biological datasets 
