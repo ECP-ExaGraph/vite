@@ -195,10 +195,15 @@ void loadPajekFile(Graph *&g, const std::string &fileName, bool indexOneBased, W
     el.i_  = vmap[el.i_];
     el.j_  = vmap[el.j_];
   }
-  
+ 
+  // adjust for duplicates 
   std::sort(edgeList.begin(), edgeList.end());
   auto last = std::unique(edgeList.begin(), edgeList.end());
   edgeList.erase(last, edgeList.end());
+  for (auto it=last; it != edgeList.end(); ++it) { 
+          edgeCount[it->i_+1] -= 1; 
+          edgeCount[it->j_+1] -= 1; 
+  }
 
   numVertices = edgeCount.size()-1;
   numEdges    = edgeList.size(); 
