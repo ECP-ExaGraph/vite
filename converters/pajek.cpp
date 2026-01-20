@@ -124,7 +124,7 @@ void loadPajekFile(Graph *&g, const std::string &fileName, bool indexOneBased, W
  
   // open file for reading edgelist 
   ifs.open(fileName.c_str(), std::ifstream::in);
-  ifs.seekg(edge_offset);
+  ifs.seekg(edge_offset, std::ios::beg);
 
   std::vector<GraphElem> edgeCount(numVertices + 1, 0);
   std::vector<GraphElemTuple> edgeList;
@@ -132,6 +132,9 @@ void loadPajekFile(Graph *&g, const std::string &fileName, bool indexOneBased, W
   // TODO FIXME accept weights as third parameter per line
   // currently assume w=1.0
   while (std::getline(ifs, line)) {
+    if (line.find('-') != std::string::npos || line.find('*') != std::string::npos)
+       continue;
+
     GraphElem v0, v1;
     GraphWeight w = 1.0;
 
@@ -175,10 +178,8 @@ void loadPajekFile(Graph *&g, const std::string &fileName, bool indexOneBased, W
   // adjust for duplicates 
   std::sort(edgeList.begin(), edgeList.end());
   auto last = std::unique(edgeList.begin(), edgeList.end());
-  for (auto it=last; it != edgeList.end(); ++it) { 
-          edgeCount[it->i_+1] -= 1; 
-          edgeCount[it->j_+1] -= 1; 
-  }
+  for (auto it=last; it != edgeList.end(); ++it)
+     edgeCount[it->i_+1] -= 1; 
   edgeList.erase(last, edgeList.end());
   
   /// adjust edge count/list to address gaps  
