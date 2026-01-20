@@ -144,6 +144,11 @@ void loadPajekFile(Graph *&g, const std::string &fileName, bool indexOneBased, W
       iss.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
       continue;
     }
+    else
+    {
+      if (v0 >= numVertices || v1 >= numVertices)
+        continue;
+    }
 
     if (indexOneBased) {
         v0--; 
