@@ -156,10 +156,10 @@ void loadPajekFile(Graph *&g, const std::string &fileName, bool indexOneBased, W
   edgeList.erase(last, edgeList.end());
   
   /// adjust edge count/list to address gaps  
-  for (auto el: edgeList) {
-    el.i_  = vmap[el.i_];
-    el.j_  = vmap[el.j_];
-    edgeCount[el.i_+1]++;
+  for (GraphElem f = 0; f < edgeList.size(); f++) {
+    edgeList[f].i_  = vmap[edgeList[f].i_];
+    edgeList[f].j_  = vmap[edgeList[f].j_];
+    edgeCount[edgeList[f].i_+1]++;
   }
  
   numVertices = edgeCount.size()-1;
