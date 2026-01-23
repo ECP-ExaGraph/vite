@@ -100,7 +100,7 @@ struct GraphElemTuple {
     bool operator <(GraphElemTuple const& tp) const
     { return (i_ < tp.i_) || ((!(tp.i_ < i_)) && (j_ < tp.j_)); }
     bool operator ==(GraphElemTuple const& tp) const
-    { return ((i_ == tp.i_) && (j_ == tp.j_) && (w_ == tp.w_)); }
+    { return ((i_ == tp.i_) && (j_ == tp.j_)); }
 };
 
 typedef enum 
@@ -115,6 +115,8 @@ extern unsigned seed;
 
 double mytimer(void);
 
+bool isDigits(const std::string& str);
+ 
 // uses a static random engine (seed)
 GraphWeight genRandom(GraphWeight low, GraphWeight high);
 

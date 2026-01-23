@@ -59,6 +59,10 @@
 
 #include "pajek.hpp"
 
+/// This loader assumes the input file to have the following format:
+/// First line: *Vertices <>
+/// Second line onward: u v (edge list)
+/// see loadPajekFileOrig for loading Pajek files in original format
 void loadPajekFile(Graph *&g, const std::string &fileName, bool indexOneBased, Weight_t wtype)
 {
   std::ifstream ifs;
@@ -79,80 +83,40 @@ void loadPajekFile(Graph *&g, const std::string &fileName, bool indexOneBased, W
   // *Arcs are directed whereas *Edges indicate undirected
  
   std::string line;
-  std::string target_word_vertices = "*Vertices";
-  std::string target_word_arcs = "*Arcs";
-  std::string target_word_edges = "*Edges";
-  bool is_arcs = false, is_edges = false, is_vertices = false;
-  std::streampos edge_offset = 0;
-    
-  while (std::getline(ifs, line)) {
-    if (line.find(target_word_vertices) != std::string::npos) {
-       is_vertices = true;
-       numVertices = std::stol(line.substr(line.find(' ') + 1));
-    }
+  std::getline(ifs, line);
+       
+  if (line.find("*Vertices") != std::string::npos) 
+     numVertices = std::stol(line.substr(line.find(' ') + 1));
 
-    if (line.find(target_word_arcs) != std::string::npos)
-       is_arcs = true;
-    if (line.find(target_word_edges) != std::string::npos)
-       is_edges = true;
-
-    if( is_arcs || is_edges)
-    {
-      edge_offset = ifs.tellg();
-      break;
-    }
+  if (numVertices > 0) {
+       std::cout << "Reading edges from Pajek format file: " << fileName << " with #Vertices listed as: " << numVertices << std::endl;
   }
-
-  ifs.close();
-
-  if (!is_arcs && !is_edges) {
-    std::cerr << "Error searching for arcs/edges in Pajek format file: " << fileName << std::endl;
+  else {
+    std::cerr << "Unable to find *Vertices in the first line of Pajek format file: " << fileName << std::endl;
     exit(EXIT_FAILURE);
-  }
-  
-  if (!numVertices) {
-    std::cerr << "Unable to find *Vertices in Pajek format file: " << fileName << std::endl;
-    exit(EXIT_FAILURE);
-  }
-  else
-  {
-    if (is_arcs)
-      std::cout << "Loading Pajek file (with directed arcs): " << fileName << " with #Vertices listed: " << numVertices << std::endl;
-    else
-      std::cout << "Loading Pajek file (with undirected edges): " << fileName << " with #Vertices listed: " << numVertices << std::endl;
   }
  
-  // open file for reading edgelist 
-  ifs.open(fileName.c_str(), std::ifstream::in);
-  ifs.seekg(edge_offset, std::ios::beg);
-
-  std::vector<GraphElem> edgeCount(numVertices + 1, 0);
+  std::vector<short> markVertices(numVertices, 0);
   std::vector<GraphElemTuple> edgeList;
+  std::vector<GraphElem> edgeCount;
 
   // TODO FIXME accept weights as third parameter per line
   // currently assume w=1.0
-  while (std::getline(ifs, line)) {
-    if (line.find('-') != std::string::npos || line.find('*') != std::string::npos)
-       continue;
+  do {
+    std::getline(ifs, line);
+    //line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
 
     GraphElem v0, v1;
     GraphWeight w = 1.0;
-
-    std::istringstream iss(line);
     
+    std::istringstream iss(line);
     iss >> v0 >> v1;
-     
-    if (iss.fail()) {
-      iss.clear();
-      iss.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-      continue;
-    }
-    else
-    {
-      if (v0 >= numVertices || v1 >= numVertices)
-        continue;
-    }
 
+    if (v0 >= numVertices || v1 >= numVertices) {
+       std::cerr << "Error: vertex indices are larger than the #Vertices: " << v0 << ", " << v1 << std::endl;
+       exit(EXIT_FAILURE);
+    }
+     
     if (indexOneBased) {
         v0--; 
         v1--;
@@ -165,45 +129,158 @@ void loadPajekFile(Graph *&g, const std::string &fileName, bool indexOneBased, W
         w = std::fabs(w);
 
     edgeList.push_back({v0, v1, w});
-    edgeCount[v0+1]++;
-
-    if (is_arcs) {
-         edgeList.push_back({v1, v0, w});
-         edgeCount[v1+1]++;
-    }
-  } 
+    edgeList.push_back({v1, v0, w});
+    markVertices[v0] = 1;
+    markVertices[v1] = 1;
+  } while (!ifs.eof());
   
   ifs.close();
+
+  std::map<GraphElem, GraphElem> vmap;
+  GraphElem v_id = 0;
+  
+  for (GraphElem k = 0; k < numVertices; k++)
+  {
+    if (markVertices[k] == 1)
+    {
+      vmap.insert({k, v_id});
+      v_id++;
+    }
+  }
+
+  edgeCount.resize(v_id+1, 0);
   
   // adjust for duplicates 
   std::sort(edgeList.begin(), edgeList.end());
   auto last = std::unique(edgeList.begin(), edgeList.end());
-  for (auto it=last; it != edgeList.end(); ++it)
-     edgeCount[it->i_+1] -= 1; 
   edgeList.erase(last, edgeList.end());
   
   /// adjust edge count/list to address gaps  
-  std::vector<GraphElem> tmp_edgeCount;
-  std::map<GraphElem, GraphElem> vmap;
-  GraphElem v_id = 0;
-
-  tmp_edgeCount.push_back(edgeCount[0]);
-  for (GraphElem k = 1; k < edgeCount.size(); k++)
-  {
-    if (edgeCount[k] > 0)
-    {
-      tmp_edgeCount.push_back(edgeCount[k]);
-      vmap.insert({k-1, v_id});
-      v_id++;
-    }
-  }
-  
-  if (tmp_edgeCount.size() < edgeCount.size())
-    std::swap(edgeCount, tmp_edgeCount);
-
   for (auto el: edgeList) {
     el.i_  = vmap[el.i_];
     el.j_  = vmap[el.j_];
+    edgeCount[el.i_+1]++;
+  }
+ 
+  numVertices = edgeCount.size()-1;
+  numEdges    = edgeList.size(); 
+  std::cout << "Legitimate {#Vertices, #Edges} recorded while reading the file: " << numVertices << ", " << numEdges << std::endl;
+
+  g = new Graph(numVertices, numEdges);
+  processGraphData(*g, edgeCount, edgeList, numVertices, numEdges);
+  
+  t1 = mytimer();  
+  std::cout << "Total graph processing time: " << (t1 - t0) << std::endl;
+} // loadPajekFile
+
+void loadPajekFileOrig(Graph *&g, const std::string &fileName, bool indexOneBased, Weight_t wtype)
+{
+  std::ifstream ifs;
+
+  double t0, t1;
+
+  t0 = mytimer();
+
+  ifs.open(fileName.c_str(), std::ifstream::in);
+  if (!ifs) {
+    std::cerr << "Error opening Pajek format file: " << fileName << std::endl;
+    exit(EXIT_FAILURE);
+  }
+
+  GraphElem numEdges = 0, numVertices = 0;
+  
+  /// http://mrvar.fdv.uni-lj.si/pajek/DrawEPS.htm
+  // *Arcs are directed whereas *Edges indicate undirected
+ 
+  std::string line;
+  std::string target_word_vertices = "*Vertices";
+  bool found_edges = false;
+      
+  while(std::getline(ifs, line)) {
+       if (line.find(target_word_vertices) != std::string::npos) 
+          numVertices = std::stol(line.substr(line.find(' ') + 1));
+       if (line.find("*Arcs") != std::string::npos || line.find("*Edges") != std::string::npos) {
+          found_edges = true;
+          break;
+       } 
+  }
+
+  if (numVertices > 0 && found_edges) {
+       std::cout << "Reading edges from Pajek format file: " << fileName << " with #Vertices listed as: " << numVertices << std::endl;
+  }
+  else {
+    std::cerr << "Unable to find *Vertices and edge lists in Pajek format file: " << fileName << std::endl;
+    exit(EXIT_FAILURE);
+  }
+ 
+  std::vector<short> markVertices(numVertices, 0);
+  std::vector<GraphElemTuple> edgeList;
+  std::vector<GraphElem> edgeCount;
+
+  // TODO FIXME accept weights as third parameter per line
+  // currently assume w=1.0
+  do {
+    
+    std::getline(ifs, line);
+
+    line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
+
+    GraphElem v0, v1;
+    GraphWeight w = 1.0;
+    std::istringstream iss(line);
+
+    iss >> v0 >> v1;
+
+    if (v0 >= std::numeric_limits<GraphElem>::max() || v1 >= std::numeric_limits<GraphElem>::max())
+        continue;
+    if (v0 >= numVertices || v1 >= numVertices) {
+       std::cerr << "Error: vertex indices are larger than the #Vertices: " << v0 << ", " << v1 << std::endl;
+       exit(EXIT_FAILURE);
+    }
+     
+    if (indexOneBased) {
+        v0--; 
+        v1--;
+    }
+    
+    if (wtype == RND_WEIGHT)
+        w = genRandom(RANDOM_MIN_WEIGHT, RANDOM_MAX_WEIGHT);
+    
+    if (wtype == ABS_WEIGHT)
+        w = std::fabs(w);
+
+    edgeList.push_back({v0, v1, w});
+    edgeList.push_back({v1, v0, w});
+    markVertices[v0] = 1;
+    markVertices[v1] = 1;
+  } while (!ifs.eof());
+  
+  ifs.close();
+
+  std::map<GraphElem, GraphElem> vmap;
+  GraphElem v_id = 0;
+  
+  for (GraphElem k = 0; k < numVertices; k++)
+  {
+    if (markVertices[k] == 1)
+    {
+      vmap.insert({k, v_id});
+      v_id++;
+    }
+  }
+
+  edgeCount.resize(v_id+1, 0);
+  
+  // adjust for duplicates 
+  std::sort(edgeList.begin(), edgeList.end());
+  auto last = std::unique(edgeList.begin(), edgeList.end());
+  edgeList.erase(last, edgeList.end());
+  
+  /// adjust edge count/list to address gaps  
+  for (auto el: edgeList) {
+    el.i_  = vmap[el.i_];
+    el.j_  = vmap[el.j_];
+    edgeCount[el.i_+1]++;
   }
  
   numVertices = edgeCount.size()-1;

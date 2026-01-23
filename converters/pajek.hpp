@@ -56,5 +56,6 @@
 #include "../graph.hpp"
 
 void loadPajekFile(Graph *&g, const std::string &fileName, bool indexOneBased = true, Weight_t wtype = ONE_WEIGHT);
+void loadPajekFileOrig(Graph *&g, const std::string &fileName, bool indexOneBased = true, Weight_t wtype = ONE_WEIGHT);
 
 #endif // __PAJEK_H

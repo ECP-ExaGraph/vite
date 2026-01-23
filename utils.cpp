@@ -78,6 +78,16 @@ double mytimer(void)
 						    million));
 }
 
+bool isDigits(const std::string& str) 
+{
+    for (unsigned char c : str) { 
+        if (!std::isdigit(c)) { 
+            return false; 
+        }
+    }
+    return true; 
+}
+
 // Random number generator from B. Stroustrup: 
 // http://www.stroustrup.com/C++11FAQ.html#std-random
 GraphWeight genRandom(GraphWeight low, GraphWeight high)
