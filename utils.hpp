@@ -98,9 +98,10 @@ struct GraphElemTuple {
 
     // compare   
     bool operator <(GraphElemTuple const& tp) const
-    { return (i_ < tp.i_) || ((!(tp.i_ < i_)) && (j_ < tp.j_)); }
+    { return ((tp.i_ < i_) || ((tp.i_ == i_) && (tp.j_ < j_))); };
+ 
     bool operator ==(GraphElemTuple const& tp) const
-    { return ((i_ == tp.i_) && (j_ == tp.j_)); }
+    { return ((tp.i_ == i_) && (tp.j_ == j_)); }
 };
 
 typedef enum 
