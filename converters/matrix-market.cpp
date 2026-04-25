@@ -58,6 +58,9 @@
 
 #include "matrix-market.hpp"
 
+#ifdef FIX_DUPS
+#include <map>
+#endif
 /// Note: Trying out the new random number generator with static seed generator,
 //  instead of first generating the seed (based on input filename) and then passing
 //  it to the random number generator...
@@ -159,10 +162,11 @@ void loadMatrixMarketFile(Graph *&g, const std::string &fileName, Weight_t wtype
   GraphWeight weight = 1.0;
   std::vector<GraphElem> edgeCount(numVertices+1);
   std::vector<GraphElemTuple> edgeList;
-
+#ifdef FIX_DUPS
+  std::vector<short> markVertices(numVertices, 0);
+#endif
   // weights will be converted to positive numbers
   if (isSymmetric) {
-
       for (GraphElem i = 0; i < numEdges; i++) {
 
           std::getline(ifs, crd);
@@ -188,6 +192,10 @@ void loadMatrixMarketFile(Graph *&g, const std::string &fileName, Weight_t wtype
           if (wtype == RND_WEIGHT)
               weight = genRandom(RANDOM_MIN_WEIGHT, RANDOM_MAX_WEIGHT);
 
+#ifdef FIX_DUPS
+          markVertices[source] = 1;
+          markVertices[dest] = 1;
+#endif
           if (source != dest) {
               edgeList.emplace_back(source, dest, weight);
               edgeList.emplace_back(dest, source, weight);
@@ -229,6 +237,9 @@ void loadMatrixMarketFile(Graph *&g, const std::string &fileName, Weight_t wtype
 
           edgeList.emplace_back(source, dest, weight);
           edgeCount[source+1]++;
+#ifdef FIX_DUPS
+          markVertices[source] = 1;
+#endif
       }
   }
 
@@ -236,6 +247,45 @@ void loadMatrixMarketFile(Graph *&g, const std::string &fileName, Weight_t wtype
 
   numEdges = edgeList.size();
 
+#ifdef FIX_DUPS
+  std::map<GraphElem, GraphElem> vmap;
+  GraphElem v_id = 0;
+  
+  for (GraphElem k = 0; k < numVertices; k++)
+  {
+    if (markVertices[k] == 1)
+    {
+      vmap.insert({k, v_id});
+      v_id++;
+    }
+  }
+
+  std::vector<GraphElem> edgeCount2(v_id+1, 0);
+  
+  // adjust for duplicates 
+  std::sort(edgeList.begin(), edgeList.end());
+  auto last = std::unique(edgeList.begin(), edgeList.end());
+  edgeList.erase(last, edgeList.end());
+  
+  /// adjust edge count/list to address gaps  
+  for (GraphElem f = 0; f < edgeList.size(); f++) {
+    edgeList[f].i_  = vmap[edgeList[f].i_];
+    edgeList[f].j_  = vmap[edgeList[f].j_];
+    
+    edgeCount2[edgeList[f].i_+1]++;
+  }
+
+  GraphElem old_numVertices = numVertices;
+  numVertices = v_id;
+  /*
+  if (isSymmetric)
+    numEdges = edgeList.size() / 2; 
+  else
+  */
+    numEdges = edgeList.size(); 
+  std::cout << "After fixing duplicates, updated {#Vertices, #Edges} recorded while reading the file: " << numVertices << ", " << numEdges << std::endl;
+#endif
+
   g = new Graph(numVertices, numEdges);
-  processGraphData(*g, edgeCount, edgeList, numVertices, numEdges);
+  processGraphData(*g, edgeCount2, edgeList, numVertices, numEdges);
 } // loadMatrixMarketFile
