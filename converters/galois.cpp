@@ -61,8 +61,6 @@ namespace fs = std::filesystem;
 
 #include "galois.hpp"
 
-//TODO FIXME this converter has unresolved bugs!!!
-
 template <typename T>
 void read_file(std::string const& fname, const size_t count, std::vector<T>& buffer) 
 {
@@ -109,12 +107,10 @@ void loadGaloisFileUn(Graph *&g, const std::string &filePrefix)
   // read row pointers and column indices
   // using vid_size and eid_size from meta file causes garbage reads,
   // most probably both are int32_t 
-  std::vector<int32_t> vbuf;
+  std::vector<int64_t> vbuf;
   std::vector<int32_t> ebuf; 
-  read_file<int32_t>(filePrefix + ".vertex.bin", (n_vertices+1), vbuf);
+  read_file<int64_t>(filePrefix + ".vertex.bin", (n_vertices+1), vbuf);
   read_file<int32_t>(filePrefix + ".edge.bin", n_edges, ebuf);
-  // why are there zeros in rowptr?
-  vbuf.erase(std::remove(vbuf.begin()+1, vbuf.end(), 0), vbuf.end());
   
   // combine into Vite binary format
   g = new Graph(n_vertices, n_edges);
