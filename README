@@ -127,7 +127,9 @@ Possible options (can be combined):
 13. -o              : Output binary file with full path
 14. -z              : If the index of input graph is 1-based,
                       then this option makes it 0-based
-15. -f              : Option preceding input graph file                      
+15. -t              : Input graph in StringDB (undirected) format (weights 
+                      are normalized by max weight into floating point)
+16. -f              : Option preceding input graph file                      
                        
 ------------------------
 File conversion related
